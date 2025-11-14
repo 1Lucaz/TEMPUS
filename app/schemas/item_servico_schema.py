@@ -1,16 +1,19 @@
 from pydantic import BaseModel
-from typing import Optional
 
-class ItemBase(BaseModel):
+class ItemCreate(BaseModel):
     ordem_servico_id: int
     servico_id: int
     valor: float
 
-class ItemCreate(BaseModel):
-    servico_id: int
+class ItemUpdate(BaseModel):
     valor: float
 
-class ItemResponse(ItemBase):
+class ItemResponse(BaseModel):
     id: int
+    ordem_servico_id: int
+    servico_id: int
+    valor: float
     ativo: bool = True
-    model_config = { "from_attributes": True }
+
+    class Config:
+        orm_mode = True

@@ -3,6 +3,7 @@ from app.models.item_servico_model import ItemServico
 from app.models.ordem_servico_model import OrdemServico
 from app.models.servico_model import Servico
 from app.schemas.item_servico_schema import ItemCreate
+from fastapi import HTTPException
 
 class ItemServicoService:
     @staticmethod
@@ -15,14 +16,21 @@ class ItemServicoService:
         return q.all()
 
     @staticmethod
-    def criar(ordem_id: int, data: ItemCreate, db: Session):
+    def criar(data: ItemCreate, db: Session):
         payload = data.model_dump() if hasattr(data, 'model_dump') else data.dict()
         servico = db.query(Servico).filter(Servico.id == payload['servico_id'], Servico.ativo == True).first()
-        ordem = db.query(OrdemServico).filter(OrdemServico.id == ordem_id, OrdemServico.ativo == True).first()
-        if not servico or not ordem:
-            raise ValueError('referencia_invalida')
-        item = ItemServico(ordem_servico_id=ordem_id, servico_id=payload['servico_id'], valor=payload['valor'])
-        item.ativo = True
+        ordem = db.query(OrdemServico).filter(OrdemServico.id == payload['ordem_servico_id'], OrdemServico.ativo == True).first()
+        if not servico:
+            raise HTTPException(status_code=400, detail="Serviço não existe ou está inativo")
+        if not ordem:
+            raise HTTPException(status_code=400, detail="Ordem não existe ou está inativa")
+
+        item = ItemServico(
+            ordem_servico_id=payload['ordem_servico_id'],
+            servico_id=payload['servico_id'],
+            valor=payload['valor'],
+            ativo=True
+        )
         db.add(item)
         db.commit()
         db.refresh(item)

@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.ordem_servico_model import OrdemServico
 from app.models.cliente_model import Cliente
 from app.schemas.ordem_servico_schema import OrdemCreate, OrdemUpdate
+from fastapi import HTTPException
 from datetime import date
 
 class OrdemServicoService:
@@ -22,12 +23,18 @@ class OrdemServicoService:
 
     @staticmethod
     def criar(data: OrdemCreate, db: Session):
-        payload = data.model_dump() if hasattr(data, 'model_dump') else data.dict()
-        cliente = db.query(Cliente).filter(Cliente.id == payload['cliente_id'], Cliente.ativo == True).first()
+        payload = data.model_dump() if hasattr(data, "model_dump") else data.dict()
+        cliente = db.query(Cliente).filter(Cliente.id == payload["cliente_id"], Cliente.ativo == True).first()
         if not cliente:
-            raise ValueError('cliente_invalido')
-        ordem = OrdemServico(**payload)
-        ordem.ativo = True
+            raise HTTPException(status_code=400, detail="Cliente não existe ou está inativo")
+
+        ordem = OrdemServico(
+            cliente_id=payload["cliente_id"],
+            funcionario_id=payload.get("funcionario_id"),
+            data_abertura=payload["data_abertura"],
+            status=payload.get("status", "aberta"),
+            ativo=True
+        )
         db.add(ordem)
         db.commit()
         db.refresh(ordem)
@@ -35,14 +42,17 @@ class OrdemServicoService:
 
     @staticmethod
     def buscar_por_id(id: int, db: Session):
-        return db.query(OrdemServico).filter(OrdemServico.id == id).first()
+        ordem = db.query(OrdemServico).filter(OrdemServico.id == id).first()
+        if not ordem:
+            raise HTTPException(status_code=404, detail="Ordem não encontrada")
+        return ordem
 
     @staticmethod
     def atualizar(id: int, data: OrdemUpdate, db: Session):
         ordem = db.query(OrdemServico).filter(OrdemServico.id == id).first()
         if not ordem:
-            return None
-        payload = data.model_dump(exclude_none=True) if hasattr(data, 'model_dump') else data.dict(exclude_none=True)
+            raise HTTPException(status_code=404, detail="Ordem não encontrada")
+        payload = data.model_dump(exclude_none=True) if hasattr(data, "model_dump") else data.dict(exclude_none=True)
         for k, v in payload.items():
             setattr(ordem, k, v)
         db.commit()
@@ -53,7 +63,7 @@ class OrdemServicoService:
     def desativar(id: int, db: Session):
         ordem = db.query(OrdemServico).filter(OrdemServico.id == id).first()
         if not ordem:
-            return None
+            raise HTTPException(status_code=404, detail="Ordem não encontrada")
         ordem.ativo = False
         db.commit()
         db.refresh(ordem)
