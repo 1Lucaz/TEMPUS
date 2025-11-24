@@ -2,19 +2,20 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 class ClienteBase(BaseModel):
+    id: int
     nome: str
-    telefone: Optional[str] = None
+    telefone: str
     email: Optional[EmailStr] = None
+    ativo: bool
 
 class ClienteCreate(ClienteBase):
-    pass
+    nome: str
+    telefone: str
+    email: Optional[EmailStr]
+    ativo: bool = True
 
-class ClienteUpdate(BaseModel):
+class ClienteUpdate(ClienteCreate):
     nome: Optional[str] = None
     telefone: Optional[str] = None
     email: Optional[EmailStr] = None
-
-class ClienteResponse(ClienteBase):
-    id: int
-    ativo: bool = True
-    model_config = { "from_attributes": True }
+    ativo: Optional[bool] = None

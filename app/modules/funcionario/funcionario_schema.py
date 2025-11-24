@@ -2,17 +2,17 @@ from pydantic import BaseModel
 from typing import Optional
 
 class FuncionarioBase(BaseModel):
+    id: int
     nome: str
-    cargo: Optional[str] = None
+    cargo: str
+    ativo: bool
 
 class FuncionarioCreate(FuncionarioBase):
-    pass
+    nome: str
+    cargo: str
+    ativo: bool
 
-class FuncionarioUpdate(BaseModel):
+class FuncionarioUpdate(FuncionarioCreate):
     nome: Optional[str] = None
     cargo: Optional[str] = None
-
-class FuncionarioResponse(FuncionarioBase):
-    id: int
-    ativo: bool = True
-    model_config = { "from_attributes": True }
+    ativo: Optional [bool] = None

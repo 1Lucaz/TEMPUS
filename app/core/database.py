@@ -1,17 +1,72 @@
-import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from app.core.config import settings
+from psycopg2.extras import RealDictCursor
+from psycopg2.pool import ThreadedConnectionPool
+from TEMPUS import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL", settings.DATABASE_URL)
+pool = ThreadedConnectionPool (dsn=settings.DATABASE_URL, )
 
-engine = create_engine(DATABASE_URL, echo=True, future=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-Base = declarative_base()
+class Database:
 
-def get_session():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    @staticmethod
+    def commit (consulta: str, parametros: tuple = None):
+        conn = pool.getconn()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(consulta, parametros)
+            conn.commit()
+
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            raise e
+
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                pool.putconn(conn)
+
+    @staticmethod
+    def fetchone(consulta: str, parametros: tuple = None):
+        conn = pool.getconn()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        try:
+            cursor.execute(consulta, parametros)
+            result = cursor.fetchone()
+            return result
+
+        except Exception as e:
+            raise e
+
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                pool.putconn(conn)
+
+    @staticmethod
+    def fetchall(consulta: str, parametros: tuple = None):
+        conn = pool.getconn()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        try:
+            cursor.execute(consulta, parametros)
+            result = (cursor.fetchall())
+            return result
+
+        except Exception as e:
+            raise e
+
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                pool.putconn(conn)
+
+
+
+
+
+
+
