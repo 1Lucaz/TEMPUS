@@ -1,6 +1,6 @@
 from psycopg2 import sql, Error
 from TEMPUS.app.core.database import Database
-from item_servico_schema import ItemCreate, ItemUpdate
+from .item_servico_schema import ItemCreate, ItemUpdate
 
 
 class ItemService:

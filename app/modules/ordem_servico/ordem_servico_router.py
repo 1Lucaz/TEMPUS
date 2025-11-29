@@ -1,8 +1,8 @@
 from fastapi import APIRouter, status
 from typing import List, Optional
 from datetime import date
-from ordem_servico_schema import OrdemCreate, OrdemUpdate, OrdemBase
-from ordem_servico_service import OrdemServicoService
+from .ordem_servico_schema import OrdemCreate, OrdemUpdate, OrdemBase
+from .ordem_servico_service import OrdemServicoService
 from TEMPUS.app.modules.utils.exceptions import tratar_exception
 
 router = APIRouter(prefix="/ordens", tags=["Ordens de Serviço"])

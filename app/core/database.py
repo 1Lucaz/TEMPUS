@@ -1,8 +1,17 @@
+import psycopg2.pool
 from psycopg2.extras import RealDictCursor
-from psycopg2.pool import ThreadedConnectionPool
-from TEMPUS import settings
+from psycopg2.pool import ThreadedConnectionPool, SimpleConnectionPool
+from TEMPUS import settings as settings
 
-pool = ThreadedConnectionPool (dsn=settings.DATABASE_URL, )
+pool = SimpleConnectionPool(
+    minconn=1,
+    maxconn=20,
+    user=settings.DB_USER,
+    password=settings.DB_PASSWORD,
+    host=settings.DB_HOST,
+    port=settings.DB_PORT,
+    database=settings.DB_NAME
+)
 
 class Database:
 

@@ -1,1 +1,6 @@
-DATABASE_URL='postgresql+psycopg2://INSIRA_SEU_USUARIO:INSIRA_SUA_SENHA@localhost:5432/agendamento_db'
+DB_USER = "postgres"
+DB_HOST = "localhost"
+DB_NAME = "postgres"
+DB_PASSWORD = "kernel@"
+DB_PORT = "5432"
+

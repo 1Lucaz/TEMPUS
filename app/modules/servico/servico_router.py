@@ -2,8 +2,8 @@ from fastapi import APIRouter, status
 from typing import List, Optional
 
 from TEMPUS.app.modules.utils.exceptions import tratar_exception
-from servico_schema import ServicoCreate, ServicoUpdate, ServicoBase
-from servico_service import ServicoService
+from .servico_schema import ServicoCreate, ServicoUpdate, ServicoBase
+from .servico_service import ServicoService
 
 router = APIRouter(prefix="/servicos", tags=["Serviços"])
 

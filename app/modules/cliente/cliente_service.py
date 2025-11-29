@@ -1,14 +1,14 @@
 from psycopg2 import sql, Error
 from pydantic import EmailStr
 from TEMPUS.app.core.database import Database
-from cliente_schema import ClienteCreate, ClienteUpdate
+from TEMPUS.app.modules.cliente.cliente_schema import ClienteCreate, ClienteUpdate
 
 
 class ClienteService:
 
     @staticmethod
     def listar(ativo: bool | None = None, nome: str | None = None):
-        listar = 'SELECT id, nome, email, telefone, ativo FROM cliente'
+        listar = sql.SQL('''SELECT id, nome, email, telefone, ativo FROM cliente''')
         campos = []
         valores = []
 
@@ -28,10 +28,10 @@ class ClienteService:
 
     @staticmethod
     def criar_cliente(cliente: ClienteCreate):
-        criar = '''
+        criar = sql.SQL ('''
                 INSERT INTO cliente (nome, email, telefone, ativo)
                 VALUES (%s, %s, %s, %s) RETURNING id, nome, email, telefone, ativo
-                '''
+                ''')
         valores = (cliente.nome, cliente.email, cliente.telefone)
 
         try:
@@ -48,7 +48,7 @@ class ClienteService:
 
     @staticmethod
     def buscar_por_id(id: int):
-        buscar_id = '''SELECT id, nome, email, telefone, ativo FROM cliente WHERE id = %s;'''
+        buscar_id = sql.SQL('''SELECT id, nome, email, telefone, ativo FROM cliente WHERE id = %s;''')
         with Database() as db:
             return db.fetchone(buscar_id, (id,))
 

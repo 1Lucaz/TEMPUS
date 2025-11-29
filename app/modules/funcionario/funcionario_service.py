@@ -1,6 +1,6 @@
 from psycopg2 import sql, Error
 from TEMPUS.app.core.database import Database
-from funcionario_schema import FuncionarioCreate, FuncionarioUpdate
+from .funcionario_schema import FuncionarioCreate, FuncionarioUpdate
 
 class FuncionarioService:
 

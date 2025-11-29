@@ -11,7 +11,7 @@ class OrdemBase(BaseModel):
 
 class OrdemCreate(OrdemBase):
     cliente_id: int
-    data_abertura: str = date.today().fromisoformat()
+    data_abertura: str = date.today()
     status: Status = Status.ABERTA
 
 class OrdemUpdate(OrdemCreate):
