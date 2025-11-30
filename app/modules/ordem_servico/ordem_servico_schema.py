@@ -1,7 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date
-from TEMPUS.app.modules.utils.status import Status
+from app.modules.utils.status import Status
 
 class OrdemBase(BaseModel):
     id: int

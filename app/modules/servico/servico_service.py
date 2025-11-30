@@ -1,6 +1,6 @@
 from psycopg2 import sql, Error
-from TEMPUS.app.core.database import Database
-from .servico_schema import ServicoCreate, ServicoUpdate
+from app.core.database import Database
+from app.modules.servico.servico_schema import ServicoCreate, ServicoUpdate
 
 
 class ServicoService:

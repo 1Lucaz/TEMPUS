@@ -1,7 +1,7 @@
 from datetime import date
 from psycopg2 import sql, Error
-from TEMPUS.app.core.database import Database
-from .ordem_servico_schema import OrdemCreate, OrdemUpdate
+from app.core.database import Database
+from app.modules.ordem_servico.ordem_servico_schema import OrdemCreate, OrdemUpdate
 
 
 class OrdemServicoService:

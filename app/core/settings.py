@@ -1,8 +1,6 @@
-from pydantic_settings import BaseSettings
+DB_USER = "postgres"
+DB_HOST = "localhost"
+DB_NAME = "postgres"
+DB_PASSWORD = "kernel@"
+DB_PORT = "5432"
 
-class Settings (BaseSettings):
-    APP_NAME: str = "Sistema de Agendamento"
-    DATABASE_URL: str
-
-    class Config:
-        env_file = "settings.py"

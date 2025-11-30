@@ -1,9 +1,9 @@
 from fastapi import APIRouter
-from TEMPUS.app.modules.cliente import cliente_router
-from TEMPUS.app.modules.funcionario import funcionario_router
-from TEMPUS.app.modules.item_servico import item_servico_router
-from TEMPUS.app.modules.ordem_servico import ordem_servico_router
-from TEMPUS.app.modules.servico import servico_router
+from app.modules.cliente import cliente_router
+from app.modules.funcionario import funcionario_router
+from app.modules.item_servico import item_servico_router
+from app.modules.ordem_servico import ordem_servico_router
+from app.modules.servico import servico_router
 
 
 api_router = APIRouter()

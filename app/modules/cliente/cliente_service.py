@@ -1,7 +1,7 @@
 from psycopg2 import sql, Error
 from pydantic import EmailStr
-from TEMPUS.app.core.database import Database
-from TEMPUS.app.modules.cliente.cliente_schema import ClienteCreate, ClienteUpdate
+from app.core.database import Database
+from app.modules.cliente.cliente_schema import ClienteCreate, ClienteUpdate
 
 
 class ClienteService:

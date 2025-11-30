@@ -1,9 +1,9 @@
 from fastapi import APIRouter, status
 from typing import List, Optional
 
-from TEMPUS.app.modules.utils.exceptions import tratar_exception
-from .cliente_schema import ClienteCreate, ClienteUpdate, ClienteBase
-from .cliente_service import ClienteService
+from app.modules.utils.exceptions import tratar_exception
+from app.modules.cliente.cliente_schema import ClienteCreate, ClienteUpdate, ClienteBase
+from app.modules.cliente.cliente_service import ClienteService
 
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])

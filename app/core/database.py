@@ -1,7 +1,6 @@
-import psycopg2.pool
 from psycopg2.extras import RealDictCursor
-from psycopg2.pool import ThreadedConnectionPool, SimpleConnectionPool
-from TEMPUS import settings as settings
+from psycopg2.pool import SimpleConnectionPool
+import app.core.settings as settings
 
 pool = SimpleConnectionPool(
     minconn=1,

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, status
 from typing import List, Optional
-from TEMPUS.app.modules.utils.exceptions import tratar_exception
-from .funcionario_schema import FuncionarioCreate, FuncionarioUpdate, FuncionarioBase
-from .funcionario_service import FuncionarioService
+from app.modules.utils.exceptions import tratar_exception
+from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate, FuncionarioBase
+from app.modules.funcionario.funcionario_service import FuncionarioService
 
 router = APIRouter(prefix="/funcionarios", tags=["Funcionários"])
 
