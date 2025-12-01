@@ -7,12 +7,12 @@ class FuncionarioBase(BaseModel):
     cargo: str
     ativo: bool
 
-class FuncionarioCreate(FuncionarioBase):
+class FuncionarioCreate(BaseModel):
     nome: str
     cargo: str
     ativo: bool
 
-class FuncionarioUpdate(FuncionarioCreate):
+class FuncionarioUpdate(BaseModel):
     nome: Optional[str] = None
     cargo: Optional[str] = None
     ativo: Optional [bool] = None

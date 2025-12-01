@@ -2,11 +2,15 @@ from psycopg2 import sql, Error
 from app.core.database import Database
 from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate
 
+
 class FuncionarioService:
 
     @staticmethod
     def listar(ativo: bool | None = None, nome: str | None = None):
-        listar = 'SELECT id, nome, cargo, ativo FROM funcionario'
+        listar = '''
+            SELECT id, nome, cargo, ativo 
+            FROM funcionario
+        '''
         campos = []
         valores = []
 
@@ -16,34 +20,38 @@ class FuncionarioService:
 
         if nome:
             campos.append('nome ILIKE %s')
-            valores.append(nome)
+            valores.append(f"%{nome}%")
 
         if campos:
             listar += ' WHERE ' + ' AND '.join(campos)
 
         with Database() as db:
-            return db.fetchall(listar, tuple(valores))
+            db.execute(listar, tuple(valores))
+            return db.fetchall()
 
     @staticmethod
     def criar_funcionario(funcionario: FuncionarioCreate):
         criar = '''
-                INSERT INTO funcionario (nome, cargo, ativo)
-                VALUES (%s, %s, %s) RETURNING id, nome, cargo, ativo
-                '''
+            INSERT INTO funcionario (nome, cargo, ativo)
+            VALUES (%s, %s, TRUE)
+            RETURNING id, nome, cargo, ativo
+        '''
         valores = (funcionario.nome, funcionario.cargo)
 
-        try:
-            with Database() as db:
-                return db.fetchone(criar, valores)
-
-        except Error as e:
-            raise e
+        with Database() as db:
+            db.execute(criar, valores)
+            return db.fetchone()
 
     @staticmethod
     def buscar_por_id(id: int):
-        buscar_id = '''SELECT id, nome, cargo, ativo FROM funcionario WHERE id = %s;'''
+        buscar_id = '''
+            SELECT id, nome, cargo, ativo 
+            FROM funcionario 
+            WHERE id = %s
+        '''
         with Database() as db:
-            return db.fetchone(buscar_id, (id,))
+            db.execute(buscar_id, (id,))
+            return db.fetchone()
 
     @staticmethod
     def atualizar(id: int, funcionario: FuncionarioUpdate):
@@ -67,28 +75,34 @@ class FuncionarioService:
 
         valores.append(id)
 
-        atualizar = sql.SQL('''UPDATE funcionario SET {campos} WHERE id = %s
-                                RETURNING id, nome, cargo, ativo
-                            ''').format(campos=sql.SQL(', ').join(campos))
+        atualizar = sql.SQL('''
+            UPDATE funcionario 
+            SET {campos}
+            WHERE id = %s
+            RETURNING id, nome, cargo, ativo
+        ''').format(campos=sql.SQL(', ').join(campos))
 
-        try:
-            with Database() as db:
-                resultado = db.fetchone(atualizar, tuple(valores))
+        with Database() as db:
+            db.execute(atualizar, tuple(valores))
+            resultado = db.fetchone()
 
-                if not resultado:
-                    raise ValueError("FUNCIONÁRIO NÃO ENCONTRADO")
-                return resultado
+            if not resultado:
+                raise ValueError("FUNCIONÁRIO NÃO ENCONTRADO")
 
-        except Error as e:
-            raise e
+            return resultado
 
     @staticmethod
     def desativar(id: int):
-        desativar = '''UPDATE funcionario SET ativo = FALSE WHERE id = %s 
-        RETURNING id, nome, cargo, ativo'''
+        desativar = '''
+            UPDATE funcionario 
+            SET ativo = FALSE 
+            WHERE id = %s
+            RETURNING id, nome, cargo, ativo
+        '''
 
         with Database() as db:
-            resultado = db.fetchone(desativar, (id,))
+            db.execute(desativar, (id,))
+            resultado = db.fetchone()
 
             if not resultado:
                 raise ValueError("FUNCIONÁRIO NÃO ENCONTRADO")

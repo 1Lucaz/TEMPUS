@@ -6,10 +6,10 @@ class ServicoBase(BaseModel):
     descricao: str
     valor_base: float
 
-class ServicoCreate(ServicoBase):
+class ServicoCreate(BaseModel):
     descricao: str
     valor_base: float
 
-class ServicoUpdate(ServicoCreate):
+class ServicoUpdate(BaseModel):
     descricao: Optional[str] = None
     valor_base: Optional[float] = None

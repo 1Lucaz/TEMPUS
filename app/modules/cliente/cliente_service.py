@@ -1,5 +1,4 @@
 from psycopg2 import sql, Error
-from pydantic import EmailStr
 from app.core.database import Database
 from app.modules.cliente.cliente_schema import ClienteCreate, ClienteUpdate
 
@@ -8,7 +7,10 @@ class ClienteService:
 
     @staticmethod
     def listar(ativo: bool | None = None, nome: str | None = None):
-        listar = sql.SQL('''SELECT id, nome, email, telefone, ativo FROM cliente''')
+        listar = '''
+            SELECT id, nome, email, telefone, ativo 
+            FROM cliente
+        '''
         campos = []
         valores = []
 
@@ -18,39 +20,49 @@ class ClienteService:
 
         if nome:
             campos.append('nome ILIKE %s')
-            valores.append(nome)
+            valores.append(f"%{nome}%")
 
         if campos:
             listar += ' WHERE ' + ' AND '.join(campos)
 
         with Database() as db:
-            return db.fetchall(listar, tuple(valores))
+            db.execute(listar, tuple(valores))
+            return db.fetchall()
 
     @staticmethod
     def criar_cliente(cliente: ClienteCreate):
-        criar = sql.SQL ('''
-                INSERT INTO cliente (nome, email, telefone, ativo)
-                VALUES (%s, %s, %s, %s) RETURNING id, nome, email, telefone, ativo
-                ''')
+        criar = '''
+            INSERT INTO cliente (nome, email, telefone, ativo)
+            VALUES (%s, %s, %s, TRUE)
+            RETURNING id, nome, email, telefone, ativo
+        '''
         valores = (cliente.nome, cliente.email, cliente.telefone)
 
         try:
             with Database() as db:
-                return db.fetchone(criar, valores)
+                db.execute(criar, valores)
+                return db.fetchone()
 
         except Error as e:
-            erro = str(e)
+            erro = str(e).lower()
+
             if "email" in erro:
                 raise ValueError("EMAIL JÁ CADASTRADO")
-            elif "telefone" in erro:
+            if "telefone" in erro:
                 raise ValueError("TELEFONE JÁ CADASTRADO")
+
             raise e
 
     @staticmethod
     def buscar_por_id(id: int):
-        buscar_id = sql.SQL('''SELECT id, nome, email, telefone, ativo FROM cliente WHERE id = %s;''')
+        buscar_id = '''
+            SELECT id, nome, email, telefone, ativo
+            FROM cliente
+            WHERE id = %s
+        '''
         with Database() as db:
-            return db.fetchone(buscar_id, (id,))
+            db.execute(buscar_id, (id,))
+            return db.fetchone()
 
     @staticmethod
     def atualizar(id: int, dados: ClienteUpdate):
@@ -74,37 +86,48 @@ class ClienteService:
             valores.append(dados.ativo)
 
         if not campos:
-            return "Nenhum dado enviado para atualização"
+            raise ValueError("Nenhum dado enviado para atualização")
 
         valores.append(id)
 
-        atualizar = sql.SQL('''UPDATE cliente SET {campos} WHERE id = %s
-                                RETURNING id, nome, email, telefone, ativo
-                            ''').format(campos=sql.SQL(', ').join(campos))
+        atualizar = sql.SQL('''
+            UPDATE cliente
+            SET {campos}
+            WHERE id = %s
+            RETURNING id, nome, email, telefone, ativo
+        ''').format(campos=sql.SQL(', ').join(campos))
 
         try:
             with Database() as db:
-                resultado = db.fetchone(atualizar, tuple(valores))
+                db.execute(atualizar, tuple(valores))
+                resultado = db.fetchone()
 
                 if not resultado:
                     raise ValueError("CLIENTE NÃO ENCONTRADO")
+
                 return resultado
 
         except Error as e:
-            erro = str(e)
+            erro = str(e).lower()
+
             if "email" in erro:
                 raise ValueError("EMAIL JÁ EM USO POR OUTRO CLIENTE")
-            elif "telefone" in erro:
+            if "telefone" in erro:
                 raise ValueError("TELEFONE JÁ EM USO POR OUTRO CLIENTE")
+
             raise e
 
     @staticmethod
     def desativar(id: int):
-        desativar = '''UPDATE cliente SET ativo = FALSE WHERE id = %s 
-        RETURNING id, nome, email, telefone, ativo'''
-
+        desativar = '''
+            UPDATE cliente
+            SET ativo = FALSE
+            WHERE id = %s
+            RETURNING id, nome, email, telefone, ativo
+        '''
         with Database() as db:
-            resultado = db.fetchone(desativar, (id,))
+            db.execute(desativar, (id,))
+            resultado = db.fetchone()
 
             if not resultado:
                 raise ValueError("CLIENTE NÃO ENCONTRADO")

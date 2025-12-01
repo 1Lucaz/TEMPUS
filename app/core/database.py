@@ -1,80 +1,32 @@
+from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
-from psycopg2.pool import SimpleConnectionPool
-import app.core.settings as settings
 
-pool = SimpleConnectionPool(
-    minconn=1,
-    maxconn=20,
-    user=settings.DB_USER,
-    password=settings.DB_PASSWORD,
-    host=settings.DB_HOST,
-    port=settings.DB_PORT,
-    database=settings.DB_NAME
-)
 
 class Database:
+    _pool = None
 
-    @staticmethod
-    def commit (consulta: str, parametros: tuple = None):
-        conn = pool.getconn()
-        cursor = conn.cursor()
+    @classmethod
+    def initialize(cls, dsn, minconn=1, maxconn=10):
+        if cls._pool is None:
+            cls._pool = pool.ThreadedConnectionPool(
+                minconn=minconn,
+                maxconn=maxconn,
+                dsn=dsn
+            )
 
-        try:
-            cursor.execute(consulta, parametros)
-            conn.commit()
+    def __enter__(self):
+        if Database._pool is None:
+            raise RuntimeError("Pool de conexões não inicializado.")
 
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            raise e
+        self.conn = Database._pool.getconn()
+        self.cur = self.conn.cursor(cursor_factory=RealDictCursor)
+        return self.cur
 
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                pool.putconn(conn)
+    def __exit__(self, exc_type, exc, tb):
+        if exc_type is None:
+            self.conn.commit()
+        else:
+            self.conn.rollback()
 
-    @staticmethod
-    def fetchone(consulta: str, parametros: tuple = None):
-        conn = pool.getconn()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-        try:
-            cursor.execute(consulta, parametros)
-            result = cursor.fetchone()
-            return result
-
-        except Exception as e:
-            raise e
-
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                pool.putconn(conn)
-
-    @staticmethod
-    def fetchall(consulta: str, parametros: tuple = None):
-        conn = pool.getconn()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-        try:
-            cursor.execute(consulta, parametros)
-            result = (cursor.fetchall())
-            return result
-
-        except Exception as e:
-            raise e
-
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                pool.putconn(conn)
-
-
-
-
-
-
-
+        self.cur.close()
+        Database._pool.putconn(self.conn)

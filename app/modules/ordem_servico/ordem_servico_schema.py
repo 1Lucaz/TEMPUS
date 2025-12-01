@@ -1,22 +1,22 @@
+from datetime import date, datetime
 from typing import Optional
 from pydantic import BaseModel
-from datetime import date
 from app.modules.utils.status import Status
 
 class OrdemBase(BaseModel):
     id: int
     cliente_id: int
-    data_abertura: str
+    data_abertura: datetime
     status: Status
 
-class OrdemCreate(OrdemBase):
+class OrdemCreate(BaseModel):
     cliente_id: int
-    data_abertura: str = date.today()
+    data_abertura: datetime = date.today()
     status: Status = Status.ABERTA
 
-class OrdemUpdate(OrdemCreate):
+class OrdemUpdate(BaseModel):
     cliente_id: Optional [int] = None
-    data_abertura: Optional[str] = None
+    data_abertura: Optional[datetime] = None
     status: Optional[Status] = None
 
 

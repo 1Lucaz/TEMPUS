@@ -37,7 +37,8 @@ class OrdemServicoService:
             listar += ' WHERE ' + ' AND '.join(campos)
 
         with Database() as db:
-            return db.fetchall(listar, tuple(valores))
+            db.execute(listar, tuple(valores) if valores else None)
+            return db.fetchall()
 
     @staticmethod
     def criar(ordem: OrdemCreate):
@@ -49,16 +50,23 @@ class OrdemServicoService:
                 RETURNING id, cliente_id, data_abertura, status, ativo
                 '''
 
-        valores_insert = (ordem.cliente_id, ordem.data_abertura, ordem.status.value)
+        valores_insert = (
+            ordem.cliente_id,
+            ordem.data_abertura,
+            ordem.status.value,
+            True
+        )
 
         try:
             with Database() as db:
-                cliente_existe = db.fetchone(verificar_cliente, (ordem.cliente_id,))
+                db.execute(verificar_cliente, (ordem.cliente_id, True))
+                cliente_existe = db.fetchone()
 
                 if not cliente_existe:
                     raise ValueError("CLIENTE NÃO EXISTE OU ESTÁ INATIVO")
 
-                return db.fetchone(criar, valores_insert)
+                db.execute(criar, valores_insert)
+                return db.fetchone()
 
         except Error as e:
             raise e
@@ -67,7 +75,8 @@ class OrdemServicoService:
     def buscar_por_id(id: int):
         buscar_id = '''SELECT id, cliente_id, data_abertura, status, ativo FROM ordem_servico WHERE id = %s;'''
         with Database() as db:
-            return db.fetchone(buscar_id, (id,))
+            db.execute(buscar_id, (id,))
+            return db.fetchone()
 
     @staticmethod
     def atualizar(id: int, ordem: OrdemUpdate):
@@ -101,10 +110,12 @@ class OrdemServicoService:
 
         try:
             with Database() as db:
-                resultado = db.fetchone(atualizar, tuple(valores))
+                db.execute(atualizar, tuple(valores))
+                resultado = db.fetchone()
 
                 if not resultado:
                     raise ValueError("ORDEM NÃO ENCONTRADA")
+
                 return resultado
 
         except Error as e:
@@ -116,7 +127,8 @@ class OrdemServicoService:
         RETURNING id, cliente_id, data_abertura, status, ativo'''
 
         with Database() as db:
-            resultado = db.fetchone(desativar, (id,))
+            db.execute(desativar, (id,))
+            resultado = db.fetchone()
 
             if not resultado:
                 raise ValueError("ORDEM NÃO ENCONTRADA")
