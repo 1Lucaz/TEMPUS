@@ -9,32 +9,32 @@ class OrdemServicoService:
     @staticmethod
     def listar(ativo: bool | None = None, status: str | None = None, cliente_id: int | None = None,
                data_inicio: date | None = None, data_fim: date | None = None):
-        listar = 'SELECT id, cliente_id, data_abertura, status, ativo FROM ordem_servico'
+        listar = sql.SQL('''SELECT id, cliente_id, data_abertura, status, ativo FROM ordem_servico''')
         campos = []
         valores = []
 
         if ativo is not None:
-            campos.append('ativo = %s')
+            campos.append(sql.SQL('ativo = %s'))
             valores.append(ativo)
 
         if status:
-            campos.append('status = %s')
+            campos.append(sql.SQL('status = %s'))
             valores.append(status)
 
         if cliente_id:
-            campos.append('cliente_id = %s')
+            campos.append(sql.SQL('cliente_id = %s'))
             valores.append(cliente_id)
 
         if data_inicio:
-            campos.append('data_abertura >= %s')
+            campos.append(sql.SQL('data_abertura >= %s'))
             valores.append(data_inicio)
 
         if data_fim:
-            campos.append('data_abertura <= %s')
+            campos.append(sql.SQL('data_abertura <= %s'))
             valores.append(data_fim)
 
         if campos:
-            listar += ' WHERE ' + ' AND '.join(campos)
+            listar += sql.SQL(' WHERE ') + sql.SQL(' AND ').join(campos)
 
         with Database() as db:
             db.execute(listar, tuple(valores) if valores else None)
@@ -44,11 +44,11 @@ class OrdemServicoService:
     def criar(ordem: OrdemCreate):
         verificar_cliente = 'SELECT id FROM cliente WHERE id = %s AND ativo = %s'
 
-        criar = '''
+        criar = sql.SQL('''
                 INSERT INTO ordem_servico (cliente_id, data_abertura, status, ativo)
                 VALUES (%s, %s, %s, %s) 
-                RETURNING id, cliente_id, data_abertura, status, ativo
-                '''
+                RETURNING id, cliente_id, data_abertura::date as data_abertura, status, ativo
+                ''')
 
         valores_insert = (
             ordem.cliente_id,
@@ -73,7 +73,7 @@ class OrdemServicoService:
 
     @staticmethod
     def buscar_por_id(id: int):
-        buscar_id = '''SELECT id, cliente_id, data_abertura, status, ativo FROM ordem_servico WHERE id = %s;'''
+        buscar_id = sql.SQL('''SELECT id, cliente_id, data_abertura, status, ativo FROM ordem_servico WHERE id = %s;''')
         with Database() as db:
             db.execute(buscar_id, (id,))
             return db.fetchone()
@@ -123,8 +123,8 @@ class OrdemServicoService:
 
     @staticmethod
     def desativar(id: int):
-        desativar = '''UPDATE ordem_servico SET ativo = FALSE WHERE id = %s 
-        RETURNING id, cliente_id, data_abertura, status, ativo'''
+        desativar = sql.SQL('''UPDATE ordem_servico SET ativo = FALSE WHERE id = %s 
+        RETURNING id, cliente_id, data_abertura, status, ativo''')
 
         with Database() as db:
             db.execute(desativar, (id,))

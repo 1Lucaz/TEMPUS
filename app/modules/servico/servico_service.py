@@ -7,20 +7,20 @@ class ServicoService:
 
     @staticmethod
     def listar(ativo: bool | None = None, descricao: str | None = None):
-        listar = '''SELECT id, descricao, valor_base, ativo FROM servico'''
+        listar = sql.SQL('''SELECT id, descricao, valor_base, ativo FROM servico''')
         campos = []
         valores = []
 
         if ativo is not None:
-            campos.append('''ativo = %s''')
+            campos.append(sql.SQL('ativo = %s'))
             valores.append(ativo)
 
         if descricao:
-            campos.append('''descricao ILIKE %s''')
+            campos.append(sql.SQL('descricao ILIKE %s'''))
             valores.append(f"%{descricao}%")
 
         if campos:
-            listar += ' WHERE ' + ' AND '.join(campos)
+            listar += sql.SQL(' WHERE ') + sql.SQL(' AND ').join(campos)
 
         with Database() as db:
             db.execute(listar, tuple(valores) if valores else None)
@@ -62,6 +62,10 @@ class ServicoService:
         if servico.valor_base is not None:
             campos.append(sql.SQL('valor_base = %s'))
             valores.append(servico.valor_base)
+
+        if servico.ativo is not None:
+            campos.append(sql.SQL('ativo = %s'))
+            valores.append(servico.ativo)
 
         if not campos:
             raise ValueError("Nenhum dado enviado para atualização")

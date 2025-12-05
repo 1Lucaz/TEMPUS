@@ -1,21 +1,21 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 class ClienteBase(BaseModel):
     id: int
     nome: str
     telefone: str
-    email: Optional[EmailStr] = None
+    email: EmailStr
     ativo: bool
 
 class ClienteCreate(BaseModel):
-    nome: str
-    telefone: str
-    email: Optional[EmailStr]
-    ativo: bool = True
+    nome: str = Field(...)
+    telefone: str = Field(...)
+    email: EmailStr = Field(...)
+    ativo: bool = Field(default=True)
 
 class ClienteUpdate(BaseModel):
-    nome: Optional[str] = None
-    telefone: Optional[str] = None
-    email: Optional[EmailStr] = None
-    ativo: Optional[bool] = None
+    nome: Optional[str] = Field(default=None)
+    telefone: Optional[str] = Field(default=None)
+    email: Optional[EmailStr] = Field(default=None)
+    ativo: Optional[bool] = Field(default=None)

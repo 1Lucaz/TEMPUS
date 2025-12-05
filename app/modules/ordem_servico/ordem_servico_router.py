@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Body
 from typing import List, Optional
 from datetime import date
 from app.modules.ordem_servico.ordem_servico_schema import OrdemCreate, OrdemUpdate, OrdemBase
@@ -38,7 +38,7 @@ def buscar_ordem(id: int):
     return ordem
 
 @router.put("/{id}", response_model=OrdemBase)
-def atualizar_ordem(id: int, dados: OrdemUpdate):
+def atualizar_ordem(id: int, dados: OrdemUpdate = Body(..., example = {})):
     try:
         return OrdemServicoService.atualizar(id, dados)
     except Exception as e:

@@ -7,23 +7,23 @@ class ClienteService:
 
     @staticmethod
     def listar(ativo: bool | None = None, nome: str | None = None):
-        listar = '''
+        listar = sql.SQL('''
             SELECT id, nome, email, telefone, ativo 
             FROM cliente
-        '''
+        ''')
         campos = []
         valores = []
 
         if ativo is not None:
-            campos.append('ativo = %s')
+            campos.append(sql.SQL('ativo = %s'))
             valores.append(ativo)
 
         if nome:
-            campos.append('nome ILIKE %s')
+            campos.append(sql.SQL('nome ILIKE %s'))
             valores.append(f"%{nome}%")
 
         if campos:
-            listar += ' WHERE ' + ' AND '.join(campos)
+            listar += sql.SQL(' WHERE ') + sql.SQL(' AND ').join(campos)
 
         with Database() as db:
             db.execute(listar, tuple(valores))
@@ -31,11 +31,11 @@ class ClienteService:
 
     @staticmethod
     def criar_cliente(cliente: ClienteCreate):
-        criar = '''
+        criar = sql.SQL('''
             INSERT INTO cliente (nome, email, telefone, ativo)
             VALUES (%s, %s, %s, TRUE)
             RETURNING id, nome, email, telefone, ativo
-        '''
+        ''')
         valores = (cliente.nome, cliente.email, cliente.telefone)
 
         try:
@@ -55,11 +55,11 @@ class ClienteService:
 
     @staticmethod
     def buscar_por_id(id: int):
-        buscar_id = '''
+        buscar_id = sql.SQL('''
             SELECT id, nome, email, telefone, ativo
             FROM cliente
             WHERE id = %s
-        '''
+        ''')
         with Database() as db:
             db.execute(buscar_id, (id,))
             return db.fetchone()
@@ -119,12 +119,12 @@ class ClienteService:
 
     @staticmethod
     def desativar(id: int):
-        desativar = '''
+        desativar = sql.SQL('''
             UPDATE cliente
             SET ativo = FALSE
             WHERE id = %s
             RETURNING id, nome, email, telefone, ativo
-        '''
+        ''')
         with Database() as db:
             db.execute(desativar, (id,))
             resultado = db.fetchone()

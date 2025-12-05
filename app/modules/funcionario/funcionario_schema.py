@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class FuncionarioBase(BaseModel):
@@ -10,9 +10,9 @@ class FuncionarioBase(BaseModel):
 class FuncionarioCreate(BaseModel):
     nome: str
     cargo: str
-    ativo: bool
+    ativo: bool = True
 
 class FuncionarioUpdate(BaseModel):
-    nome: Optional[str] = None
-    cargo: Optional[str] = None
-    ativo: Optional [bool] = None
+    nome: Optional[str] = Field(default=None)
+    cargo: Optional[str] = Field(default=None)
+    ativo: Optional[bool] = Field(default=None)

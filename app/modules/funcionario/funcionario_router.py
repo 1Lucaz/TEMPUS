@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Body
 from typing import List, Optional
 from app.modules.utils.exceptions import tratar_exception
 from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate, FuncionarioBase
@@ -25,7 +25,8 @@ def buscar_funcionario(id: int):
     return funcionario
 
 @router.put("/{id}", response_model=FuncionarioBase)
-def atualizar_funcionario(id: int, dados: FuncionarioUpdate):
+def atualizar_funcionario(id: int, dados: FuncionarioUpdate = Body (...,
+                                                                    example ={})):
     try:
         return FuncionarioService.atualizar(id, dados)
     except Exception as e:

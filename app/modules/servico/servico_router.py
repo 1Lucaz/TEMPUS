@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Body
 from typing import List, Optional
 
 from app.modules.utils.exceptions import tratar_exception
@@ -26,7 +26,7 @@ def buscar_servico(id: int):
     return servico
 
 @router.put("/{id}", response_model=ServicoBase)
-def atualizar_servico(id: int, dados: ServicoUpdate):
+def atualizar_servico(id: int, dados: ServicoUpdate = Body(..., example={})):
     try:
         return ServicoService.atualizar(id, dados)
     except Exception as e:

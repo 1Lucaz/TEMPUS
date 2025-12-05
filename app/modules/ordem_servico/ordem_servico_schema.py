@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_serializer
 from app.modules.utils.status import Status
 
 class OrdemBase(BaseModel):
@@ -8,15 +8,20 @@ class OrdemBase(BaseModel):
     cliente_id: int
     data_abertura: datetime
     status: Status
+    ativo: bool
+
+    @field_serializer("data_abertura")
+    def serialize_data_abertura(self, value: datetime):
+        return value.date()
 
 class OrdemCreate(BaseModel):
     cliente_id: int
-    data_abertura: datetime = date.today()
+    data_abertura: date = date.today()
     status: Status = Status.ABERTA
+    ativo: bool = True
 
 class OrdemUpdate(BaseModel):
-    cliente_id: Optional [int] = None
-    data_abertura: Optional[datetime] = None
-    status: Optional[Status] = None
-
-
+    cliente_id: Optional[int] = Field(default=None)
+    data_abertura: Optional[date] = Field(default=None)
+    status: Optional[Status] = Field(default=None)
+    ativo: Optional[bool] = Field(default=None)
