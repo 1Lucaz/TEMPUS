@@ -1,17 +1,19 @@
 from fastapi import FastAPI
-from app.core.settings import DB_URL
-from app.core.database import Database
 from app.routers.api_router import api_router
-app = FastAPI(title="Sistema de Agendamento - V 1.1")
+from fastapi.middleware.cors import CORSMiddleware
 
+app = FastAPI(title="TEMPUS (V 1.0.1")
 app.include_router(api_router, prefix="/api")
 
-Database.initialize(
-    dsn=DB_URL,
-    minconn=1,
-    maxconn=10
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+
 )
+
 @app.get("/", tags=["Root"])
 def root():
-    return {"mensagem": "API de Agendamento rodando"}
+    return {"HI": "Hello World"}
 

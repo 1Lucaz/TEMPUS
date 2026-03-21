@@ -1,135 +1,91 @@
-from psycopg2 import sql, Error
-from app.core.database import Database
-from app.modules.cliente.cliente_schema import ClienteCreate, ClienteUpdate
+from app.core.security import password_hash, generate_password_hash
+from app.modules.cliente.cliente_model import Cliente
+from app.modules.cliente.cliente_repository import ClienteRepository
+from app.modules.cliente.cliente_schema import ClienteCreate, ClienteResponse
+from app.modules.utils.app_exception import Conflict, BadRequest, NotFound
+
 
 
 class ClienteService:
 
-    @staticmethod
-    def listar(ativo: bool | None = None, nome: str | None = None):
-        listar = sql.SQL('''
-            SELECT id, nome, email, telefone, ativo 
-            FROM cliente
-        ''')
-        campos = []
-        valores = []
+    def __init__ (self, repository: ClienteRepository):
+        self.repository = repository
 
-        if ativo is not None:
-            campos.append(sql.SQL('ativo = %s'))
-            valores.append(ativo)
+    def listar(self, id: int | None = None,
+               ativo: bool | None = None,
+               nome: str | None = None,
+               email: str | None = None,
+               telefone: str | None = None) -> list [Cliente]:
 
-        if nome:
-            campos.append(sql.SQL('nome ILIKE %s'))
-            valores.append(f"%{nome}%")
+        condicoes_exigidas : dict = {"id": id, "ativo": ativo, "nome": nome, "email": email, "telefone": telefone}
+        condicoes_pesquisa: dict = {campo : dado for campo, dado in condicoes_exigidas.items() if dado is not None}
 
-        if campos:
-            listar += sql.SQL(' WHERE ') + sql.SQL(' AND ').join(campos)
+        return self.repository.busca_dinamica(**condicoes_pesquisa)
 
-        with Database() as db:
-            db.execute(listar, tuple(valores))
-            return db.fetchall()
 
-    @staticmethod
-    def criar_cliente(cliente: ClienteCreate):
-        criar = sql.SQL('''
-            INSERT INTO cliente (nome, email, telefone, ativo)
-            VALUES (%s, %s, %s, TRUE)
-            RETURNING id, nome, email, telefone, ativo
-        ''')
-        valores = (cliente.nome, cliente.email, cliente.telefone)
+    def criar_cliente(self, cliente: ClienteCreate) -> Cliente:
 
-        try:
-            with Database() as db:
-                db.execute(criar, valores)
-                return db.fetchone()
+        if self.repository.busca_dinamica(email=str(cliente.email)) or self.repository.busca_dinamica(telefone=cliente.telefone):
+            raise Conflict()
 
-        except Error as e:
-            erro = str(e).lower()
+        senha_hash = generate_password_hash(cliente.password)
 
-            if "email" in erro:
-                raise ValueError("EMAIL JÁ CADASTRADO")
-            if "telefone" in erro:
-                raise ValueError("TELEFONE JÁ CADASTRADO")
+        cliente_novo = Cliente (
+            nome = cliente.nome,
+            email=str(cliente.email),
+            telefone=cliente.telefone,
+            senha=senha_hash
+        )
 
-            raise e
+        self.repository.salvar_cliente(cliente_novo)
+        return cliente_novo
 
-    @staticmethod
-    def buscar_por_id(id: int):
-        buscar_id = sql.SQL('''
-            SELECT id, nome, email, telefone, ativo
-            FROM cliente
-            WHERE id = %s
-        ''')
-        with Database() as db:
-            db.execute(buscar_id, (id,))
-            return db.fetchone()
 
-    @staticmethod
-    def atualizar(id: int, dados: ClienteUpdate):
-        campos = []
-        valores = []
+    def atualizar(self,
+                  id: int,
+                  nome: str | None = None,
+                  email: str | None = None,
+                  telefone: str | None = None) -> Cliente | None:
 
-        if dados.nome is not None:
-            campos.append(sql.SQL('nome = %s'))
-            valores.append(dados.nome)
+        if nome is None and email is None and telefone is None:
+            raise BadRequest(causa="Não há nenhum parâmetro para buscar o cliente")
 
-        if dados.email is not None:
-            campos.append(sql.SQL('email = %s'))
-            valores.append(dados.email)
+        dados_novos: dict = {campo : dado for campo, dado in
+                             {"nome": nome, "email": email, "telefone": telefone}.items() if dado is not None}
 
-        if dados.telefone is not None:
-            campos.append(sql.SQL('telefone = %s'))
-            valores.append(dados.telefone)
 
-        if dados.ativo is not None:
-            campos.append(sql.SQL('ativo = %s'))
-            valores.append(dados.ativo)
+        cliente = self.repository.buscar_por_id(id)
 
-        if not campos:
-            raise ValueError("Nenhum dado enviado para atualização")
+        if cliente:
 
-        valores.append(id)
+            if ClienteRepository.exists_email(dados_novos.get("email")):
+                raise Conflict (causa="Este email já está em uso")
 
-        atualizar = sql.SQL('''
-            UPDATE cliente
-            SET {campos}
-            WHERE id = %s
-            RETURNING id, nome, email, telefone, ativo
-        ''').format(campos=sql.SQL(', ').join(campos))
+            if ClienteRepository.exists_telefone(dados_novos.get("telefone")):
+                raise Conflict(causa="Este telefone já está em uso")
 
-        try:
-            with Database() as db:
-                db.execute(atualizar, tuple(valores))
-                resultado = db.fetchone()
+            else:
+                cliente = self.repository.atualizar_cliente(id, dados_novos)
+                return cliente
 
-                if not resultado:
-                    raise ValueError("CLIENTE NÃO ENCONTRADO")
+        else:
+            raise NotFound(causa="Cliente não encontrado")
 
-                return resultado
 
-        except Error as e:
-            erro = str(e).lower()
 
-            if "email" in erro:
-                raise ValueError("EMAIL JÁ EM USO POR OUTRO CLIENTE")
-            if "telefone" in erro:
-                raise ValueError("TELEFONE JÁ EM USO POR OUTRO CLIENTE")
+    def desativar(self, cliente: ClienteResponse) -> type[Cliente]:
 
-            raise e
+        if cliente.id is None and cliente.email is None and cliente.telefone is None:
+            raise BadRequest(causa="Não há nenhum parâmetro para desativar o cliente")
 
-    @staticmethod
-    def desativar(id: int):
-        desativar = sql.SQL('''
-            UPDATE cliente
-            SET ativo = FALSE
-            WHERE id = %s
-            RETURNING id, nome, email, telefone, ativo
-        ''')
-        with Database() as db:
-            db.execute(desativar, (id,))
-            resultado = db.fetchone()
+        cliente = self.repository.desativar_cliente(id=cliente.id, email=cliente.email, telefone=cliente.telefone)
 
-            if not resultado:
-                raise ValueError("CLIENTE NÃO ENCONTRADO")
+        if cliente is None:
+            raise NotFound(causa="Cliente não encontrado")
 
-            return resultado
+        if not cliente.ativo:
+            raise Conflict(causa="Cliente já desativado")
+
+        return cliente
+
+

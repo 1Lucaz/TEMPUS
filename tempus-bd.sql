@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS cliente (
   nome          TEXT NOT NULL,
   telefone      TEXT NOT NULL,
   email         TEXT NOT NULL,
+  senha         TEXT NOT NULL,
   ativo         BOOLEAN NOT NULL DEFAULT TRUE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -28,6 +29,8 @@ CREATE TABLE IF NOT EXISTS funcionario (
   id            BIGSERIAL PRIMARY KEY,
   nome          TEXT NOT NULL,
   cargo         TEXT,
+  email         TEXT UNIQUE NOT NULL,
+  senha         TEXT NOT NULL,
   ativo         BOOLEAN NOT NULL DEFAULT TRUE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()

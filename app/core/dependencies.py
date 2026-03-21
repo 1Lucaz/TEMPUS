@@ -1,0 +1,24 @@
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.modules.cliente.cliente_repository import ClienteRepository
+from app.modules.cliente.cliente_service import ClienteService
+from app.modules.funcionario.funcionario_repository import FuncionarioRepository
+from app.modules.funcionario.funcionario_service import FuncionarioService
+
+
+#INVERSÃO DE DEPENDÊNCIAS PARA O SERVICE E ROUTES, APENAS O REPOSITORY CONHECE AS REGRAS DO BANCO
+
+def get_cliente_repository (self, db: Session = Depends(get_db)) -> ClienteRepository:
+    return ClienteRepository(db)
+
+def get_cliente_service (self, repository: ClienteRepository = Depends(get_cliente_repository)) -> ClienteService:
+    return ClienteService(repository)
+
+
+
+def get_funcionario_repository (self, db: Session = Depends(get_db)) -> FuncionarioRepository:
+    return FuncionarioRepository(db)
+
+def get_funcionario_service (self, repository: FuncionarioRepository = Depends (get_funcionario_repository)) -> FuncionarioService:
+    return FuncionarioService(repository)

@@ -1,47 +1,47 @@
-from fastapi import APIRouter, status, Body
-from typing import List, Optional
+from fastapi import APIRouter, Body, Depends
+from app.modules.utils.app_exception import *
 
-from app.modules.utils.exceptions import tratar_exception
-from app.modules.cliente.cliente_schema import ClienteCreate, ClienteUpdate, ClienteBase
+from app.modules.cliente.cliente_schema import ClienteCreate, ClienteUpdate, ClienteResponse
 from app.modules.cliente.cliente_service import ClienteService
+
+from app.core.dependencies import get_cliente_service
+
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
-@router.get("/", response_model=List[ClienteBase])
-def listar_clientes(ativo: Optional[bool] = None, nome: Optional[str] = None):
-    return ClienteService.listar(ativo=ativo, nome=nome)
+@router.get("/buscar_cliente",
+            response_model=list[ClienteResponse],
+            status_code=status.HTTP_200_OK)
+
+def buscar_cliente(dados: ClienteCreate = Body(...), service: ClienteService = Depends(get_cliente_service)):
+    parametros : dict = {campo:valor for campo, valor in (dados.model_dump()).items() if valor is not None}
+    return service.listar(**parametros)
 
 
-@router.post("/", response_model=ClienteBase, status_code=status.HTTP_201_CREATED)
-def criar_cliente(cliente: ClienteCreate = Body(...)):
-    try:
-        return ClienteService.criar_cliente(cliente)
-    except Exception as e:
-        tratar_exception(e)
+
+@router.post("/criar_cliente",
+             response_model=ClienteResponse,
+             status_code=status.HTTP_201_CREATED)
+
+def criar_cliente(cliente: ClienteCreate = Body(...), service: ClienteService = Depends(get_cliente_service)):
+    return service.criar_cliente(cliente)
 
 
-@router.get("/{id}", response_model=ClienteBase)
-def buscar_cliente(id: int):
-    cliente = ClienteService.buscar_por_id(id)
-    if not cliente:
-        tratar_exception(ValueError("CLIENTE NÃO ENCONTRADO"))
-    return cliente
+
+@router.patch("/atualizar_cliente",
+              response_model=ClienteResponse,
+              status_code=status.HTTP_200_OK)
+
+def atualizar_cliente(id: int, dados: ClienteUpdate = Body(...), service: ClienteService = Depends(get_cliente_service)):
+    return service.atualizar(id, nome=dados.nome, email=dados.email, telefone=dados.telefone)
 
 
-@router.put("/{id}", response_model=ClienteBase)
-def atualizar_cliente(
-    id: int,
-    dados: ClienteUpdate = Body(..., example={})
-):
-    try:
-        return ClienteService.atualizar(id, dados)
-    except Exception as e:
-        tratar_exception(e)
 
 
-@router.post("/{id}/desativar", response_model=ClienteBase)
-def desativar_cliente(id: int):
-    try:
-        return ClienteService.desativar(id)
-    except Exception as e:
-        tratar_exception(e)
+@router.post("/desativar_cliente",
+             response_model=ClienteResponse,
+             status_code=status.HTTP_200_OK)
+
+def desativar_cliente(cliente: ClienteResponse, service: ClienteService = Depends(get_cliente_service)):
+    return service.desativar(cliente)
+

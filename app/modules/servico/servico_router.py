@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, Body
 from typing import List, Optional
 
-from app.modules.utils.exceptions import tratar_exception
+from app.modules.utils.app_exception import exception_handler
 from app.modules.servico.servico_schema import ServicoCreate, ServicoUpdate, ServicoBase
 from app.modules.servico.servico_service import ServicoService
 
@@ -16,13 +16,13 @@ def criar_servico(servico: ServicoCreate):
     try:
         return ServicoService.criar_servico(servico)
     except Exception as e:
-        tratar_exception(e)
+        exception_handler(e)
 
 @router.get("/{id}", response_model=ServicoBase)
 def buscar_servico(id: int):
     servico = ServicoService.buscar_por_id(id)
     if not servico:
-        tratar_exception(ValueError("SERVIÇO NÃO ENCONTRADO"))
+        exception_handler(ValueError("SERVIÇO NÃO ENCONTRADO"))
     return servico
 
 @router.put("/{id}", response_model=ServicoBase)
@@ -30,11 +30,11 @@ def atualizar_servico(id: int, dados: ServicoUpdate = Body(..., example={})):
     try:
         return ServicoService.atualizar(id, dados)
     except Exception as e:
-        tratar_exception(e)
+        exception_handler(e)
 
 @router.post("/{id}/desativar", response_model=ServicoBase)
 def desativar_servico(id: int):
     try:
         return ServicoService.desativar(id)
     except Exception as e:
-        tratar_exception(e)
+        exception_handler(e)

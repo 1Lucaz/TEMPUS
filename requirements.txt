@@ -1,6 +1,15 @@
+pyjwt
+pipx >= 1.8.0
+
 fastapi>=0.95.0
 uvicorn[standard]>=0.21.0
-psycopg2-binary>=2.9
+
+alembic >= 1.18.4
+sqlalchemy <= 2.1
 pydantic>=2.5
 pydantic[email]
+psycopg >= 3.3.3
+
 python-dotenv>=1.0
+
+passlib[bcrypt] >= 1.7.4

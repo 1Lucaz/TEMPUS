@@ -1,110 +1,102 @@
-from psycopg2 import sql, Error
-from app.core.database import Database
-from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate
+from app.modules.funcionario.funcionario_model import Funcionario
+from app.modules.funcionario.funcionario_repository import FuncionarioRepository
+from app.modules.funcionario.funcionario_schema import FuncionarioCreate
+from app.modules.utils.app_exception import *
+from passlib.hash import pbkdf2_sha256 as hashgenerator
 
 
 class FuncionarioService:
 
-    @staticmethod
-    def listar(ativo: bool | None = None, nome: str | None = None):
-        listar = '''
-            SELECT id, nome, cargo, ativo 
-            FROM funcionario
-        '''
-        campos = []
-        valores = []
+    def __init__(self, repository: FuncionarioRepository):
+        self.repository = repository
 
-        if ativo is not None:
-            campos.append('ativo = %s')
-            valores.append(ativo)
+    def listar(self, id: int | None = None,
+               ativo: bool | None = None,
+               nome: str | None = None,
+               email: str | None = None,
+               is_admin: bool | None = None,
+               is_colaborador: bool | None = None,
+               telefone: str | None = None) -> list[type[Funcionario]]:
 
-        if nome:
-            campos.append('nome ILIKE %s')
-            valores.append(f"%{nome}%")
+        condicoes_exigidas : dict = {   "id": id,
+                                        "ativo": ativo,
+                                        "nome": nome,
+                                        "email": email,
+                                        "telefone": telefone,
+                                        "is_admin": is_admin,
+                                        "is_colaborador": is_colaborador}
 
-        if campos:
-            listar += ' WHERE ' + ' AND '.join(campos)
+        condicoes_pesquisa: dict = {campo : dado for campo, dado in condicoes_exigidas.items() if dado is not None}
 
-        with Database() as db:
-            db.execute(listar, tuple(valores))
-            return db.fetchall()
+        return self.repository.busca_dinamica(**condicoes_pesquisa)
 
-    @staticmethod
-    def criar_funcionario(funcionario: FuncionarioCreate):
-        criar = '''
-            INSERT INTO funcionario (nome, cargo, ativo)
-            VALUES (%s, %s, TRUE)
-            RETURNING id, nome, cargo, ativo
-        '''
-        valores = (funcionario.nome, funcionario.cargo)
 
-        with Database() as db:
-            db.execute(criar, valores)
-            return db.fetchone()
+    def criar_funcionario(self, funcionario: FuncionarioCreate) -> Funcionario:
 
-    @staticmethod
-    def buscar_por_id(id: int):
-        buscar_id = '''
-            SELECT id, nome, cargo, ativo 
-            FROM funcionario 
-            WHERE id = %s
-        '''
-        with Database() as db:
-            db.execute(buscar_id, (id,))
-            return db.fetchone()
+        if self.repository.busca_dinamica(email=str(funcionario.email)) or self.repository.busca_dinamica(telefone=funcionario.telefone):
+            raise Conflict()
 
-    @staticmethod
-    def atualizar(id: int, funcionario: FuncionarioUpdate):
-        campos = []
-        valores = []
+        funcionario_novo = Funcionario (
+            nome = funcionario.nome,
+            email=str(funcionario.email),
+            cargo=funcionario.cargo,
+            is_admin=funcionario.is_admin,
+            is_colaborador=funcionario.is_colaborador,
+            senha=hashgenerator.hash(funcionario.senha)
+        )
 
-        if funcionario.nome is not None:
-            campos.append(sql.SQL('nome = %s'))
-            valores.append(funcionario.nome)
+        self.repository.salvar_funcionario(funcionario)
+        return funcionario
 
-        if funcionario.cargo is not None:
-            campos.append(sql.SQL('cargo = %s'))
-            valores.append(funcionario.cargo)
 
-        if funcionario.ativo is not None:
-            campos.append(sql.SQL('ativo = %s'))
-            valores.append(funcionario.ativo)
+    def atualizar(self,
+                  id: int,
+                  nome: str | None = None,
+                  email: str | None = None,
+                  cargo: str | None = None,
+                  is_colaborador: bool | None = None,
+                  is_admin: bool | None = None,
+                  ) -> Funcionario | None:
 
-        if not campos:
-            raise ValueError("Nenhum dado enviado para atualização")
+        if nome is None and email is None and cargo is None and is_admin is None and is_colaborador is None:
+            raise BadRequest(causa="Não há nenhum parâmetro para buscar o cliente")
 
-        valores.append(id)
+        dados_novos: dict = {campo:dado for campo,dado in
+                             {"nome": nome,
+                              "email": email,
+                              "cargo": cargo,
+                              "is_colaborador":is_colaborador,
+                              "is_admin": is_admin}.items() if dado is not None}
 
-        atualizar = sql.SQL('''
-            UPDATE funcionario 
-            SET {campos}
-            WHERE id = %s
-            RETURNING id, nome, cargo, ativo
-        ''').format(campos=sql.SQL(', ').join(campos))
 
-        with Database() as db:
-            db.execute(atualizar, tuple(valores))
-            resultado = db.fetchone()
+        funcionario = self.repository.buscar_por_id(id)
 
-            if not resultado:
-                raise ValueError("FUNCIONÁRIO NÃO ENCONTRADO")
+        if funcionario:
 
-            return resultado
+            if FuncionarioRepository.exists_email(dados_novos.get("email")):
+                raise Conflict (causa="Este email já está em uso")
 
-    @staticmethod
-    def desativar(id: int):
-        desativar = '''
-            UPDATE funcionario 
-            SET ativo = FALSE 
-            WHERE id = %s
-            RETURNING id, nome, cargo, ativo
-        '''
+            if FuncionarioRepository.exists_telefone(dados_novos.get("telefone")):
+                raise Conflict(causa="Este telefone já está em uso")
 
-        with Database() as db:
-            db.execute(desativar, (id,))
-            resultado = db.fetchone()
+            else:
+                funcionario = self.repository.atualizar_funcionario(id, dados_novos)
+                return funcionario
 
-            if not resultado:
-                raise ValueError("FUNCIONÁRIO NÃO ENCONTRADO")
+        else:
+            raise NotFound(causa="Cliente não encontrado")
 
-            return resultado
+
+
+    def desativar(self, id: int | None = None,
+                  email: str | None = None) -> type[Funcionario]:
+
+        if id is None and email is None:
+            raise BadRequest(causa="Não há nenhum parâmetro para desativar o cliente")
+
+        cliente = self.repository.desativar_funcionario(id=id, email=email)
+
+        if cliente is None:
+            raise NotFound(causa="Cliente não encontrado")
+
+        return cliente

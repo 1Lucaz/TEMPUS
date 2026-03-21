@@ -1,21 +1,27 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
-
-class ClienteBase(BaseModel):
-    id: int
-    nome: str
-    telefone: str
-    email: EmailStr
-    ativo: bool
 
 class ClienteCreate(BaseModel):
-    nome: str = Field(...)
-    telefone: str = Field(...)
-    email: EmailStr = Field(...)
-    ativo: bool = Field(default=True)
+    nome: str
+    email: EmailStr
+    telefone: str
+    senha: str
+
+    model_config = {"from_attributes": True}
 
 class ClienteUpdate(BaseModel):
-    nome: Optional[str] = Field(default=None)
-    telefone: Optional[str] = Field(default=None)
-    email: Optional[EmailStr] = Field(default=None)
-    ativo: Optional[bool] = Field(default=None)
+    novo_nome: str | None = None
+    novo_email: str | None = None
+    novo_telefone: str | None
+    nova_senha: str | None = None
+    ativo: bool | None = None
+
+    model_config = {"from_attributes": True}
+
+class ClienteResponse(BaseModel):
+    id: int
+    nome: str
+    email: str
+    telefone: str
+    ativo: bool
+
+    model_config = {"from_attributes": True}

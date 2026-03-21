@@ -1,40 +1,32 @@
-from fastapi import APIRouter, status, Body
+from fastapi import APIRouter, status, Body, Depends
 from typing import List, Optional
-from app.modules.utils.exceptions import tratar_exception
-from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate, FuncionarioBase
+
+from app.core.dependencies import get_funcionario_service
+from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate, FuncionarioResponse
 from app.modules.funcionario.funcionario_service import FuncionarioService
 
 router = APIRouter(prefix="/funcionarios", tags=["Funcionários"])
 
-@router.get("/", response_model=List[FuncionarioBase])
-def listar_funcionarios(ativo: Optional[bool] = None, nome: Optional[str] = None):
-    return FuncionarioService.listar(ativo=ativo, nome=nome)
+@router.get("/", response_model=List[FuncionarioResponse])
+def listar_funcionarios(funcionario: FuncionarioResponse = Depends (get_funcionario_service)):
+    return FuncionarioService.listar(ativo=ativo, nome=nome, is_admin=)
 
-@router.post("/", response_model=FuncionarioBase, status_code=status.HTTP_201_CREATED)
-def criar_funcionario(funcionario: FuncionarioCreate):
-    try:
-        return FuncionarioService.criar_funcionario(funcionario)
-    except Exception as e:
-        tratar_exception(e)
+@router.post("/", response_model=FuncionarioResponse, status_code=status.HTTP_201_CREATED)
+def criar_funcionario(funcionario: FuncionarioCreate, service: FuncionarioService = Depends (get_funcionario_service)):
+    return service.criar_funcionario(funcionario)
 
-@router.get("/{id}", response_model=FuncionarioBase)
-def buscar_funcionario(id: int):
-    funcionario = FuncionarioService.buscar_por_id(id)
-    if not funcionario:
-        tratar_exception(ValueError("FUNCIONÁRIO NÃO ENCONTRADO"))
-    return funcionario
+@router.get("/buscar_funcionario", response_model=FuncionarioResponse)
+def buscar_funcionario(dados: FuncionarioCreate, service: FuncionarioService = Depends (get_funcionario_service)):
+    service.criar_funcionario()
 
-@router.put("/{id}", response_model=FuncionarioBase)
-def atualizar_funcionario(id: int, dados: FuncionarioUpdate = Body (...,
-                                                                    example ={})):
-    try:
-        return FuncionarioService.atualizar(id, dados)
-    except Exception as e:
-        tratar_exception(e)
+@router.patch("/atualizar_funcionario", response_model=FuncionarioResponse)
+def atualizar_funcionario(id: int, dados: FuncionarioUpdate, service: FuncionarioService = Depends (get_funcionario_service)):
+    return service.atualizar(id,
+                             cargo=dados.novo_cargo,
+                             nome=dados.novo_nome,
+                             email=dados.novo_email,
+                             is_admin=dados.is_admin)
 
-@router.post("/{id}/desativar", response_model=FuncionarioBase)
-def desativar_funcionario(id: int):
-    try:
-        return FuncionarioService.desativar(id)
-    except Exception as e:
-        tratar_exception(e)
+@router.post("/desativar_funcionario", response_model=FuncionarioResponse)
+def desativar_funcionario(id: int, dados:FuncionarioCreate, service: FuncionarioService = Depends (get_funcionario_service)):
+    return service.desativar(id, email= str(dados.email))

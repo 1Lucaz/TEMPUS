@@ -1,32 +1,46 @@
-from psycopg2 import pool
-from psycopg2.extras import RealDictCursor
+import os
 
+from dotenv import load_dotenv
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+
+#dados do db encontram-se arquivo properties.py
+load_dotenv()
+engine = create_engine (os.getenv('DATABASE_URL'), pool_pre_ping=True, pool_recycle=3600)
+SessionLocal = sessionmaker (autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    except Exception:
+        raise Exception
+    finally:
+        db.close()
 
 class Database:
-    _pool = None
+    def __enter__ (self):
+        self.session = SessionLocal()
+        return self.session
 
-    @classmethod
-    def initialize(cls, dsn, minconn=1, maxconn=10):
-        if cls._pool is None:
-            cls._pool = pool.ThreadedConnectionPool(
-                minconn=minconn,
-                maxconn=maxconn,
-                dsn=dsn
-            )
+    def __exit__ (self, exc_type, exc_value, exc_traceback):
 
-    def __enter__(self):
-        if Database._pool is None:
-            raise RuntimeError("Pool de conexões não inicializado.")
+        try:
+            if exc_type:
+                self.session.rollback()
+                raise f"ERRO DO TIPO - {exc_type} | MENSAGEM -> {exc_value}"
 
-        self.conn = Database._pool.getconn()
-        self.cur = self.conn.cursor(cursor_factory=RealDictCursor)
-        return self.cur
+            else:
+                try:
+                    self.session.commit()
 
-    def __exit__(self, exc_type, exc, tb):
-        if exc_type is None:
-            self.conn.commit()
-        else:
-            self.conn.rollback()
+                except Exception:
+                    self.session.rollback()
+                    raise f"ERRO DO TIPO - {exc_type} | MENSAGEM -> {exc_value}"
 
-        self.cur.close()
-        Database._pool.putconn(self.conn)
+        finally:
+            self.session.close()
+
