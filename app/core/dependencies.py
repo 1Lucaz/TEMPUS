@@ -9,16 +9,16 @@ from app.modules.funcionario.funcionario_service import FuncionarioService
 
 #INVERSÃO DE DEPENDÊNCIAS PARA O SERVICE E ROUTES, APENAS O REPOSITORY CONHECE AS REGRAS DO BANCO
 
-def get_cliente_repository (self, db: Session = Depends(get_db)) -> ClienteRepository:
+def get_cliente_repository (db: Session = Depends(get_db)) -> ClienteRepository:
     return ClienteRepository(db)
 
-def get_cliente_service (self, repository: ClienteRepository = Depends(get_cliente_repository)) -> ClienteService:
+def get_cliente_service (repository: ClienteRepository = Depends(get_cliente_repository)) -> ClienteService:
     return ClienteService(repository)
 
 
 
-def get_funcionario_repository (self, db: Session = Depends(get_db)) -> FuncionarioRepository:
+def get_funcionario_repository (db: Session = Depends(get_db)) -> FuncionarioRepository:
     return FuncionarioRepository(db)
 
-def get_funcionario_service (self, repository: FuncionarioRepository = Depends (get_funcionario_repository)) -> FuncionarioService:
+def get_funcionario_service (repository: FuncionarioRepository = Depends (get_funcionario_repository)) -> FuncionarioService:
     return FuncionarioService(repository)

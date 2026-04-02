@@ -1,27 +1,32 @@
-from fastapi import status
+from fastapi import status, HTTPException
 
-class AppException(Exception):
 
-    def __init__(self, mensagem : str, status_code:int, causa: str | None = None):
-        self.mensagem = mensagem
-        self.status_code = status_code
+class BadRequest(HTTPException):
+    def __init__(self, causa: str | None = None):
+        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail="Solicitação Inválida. A solicitação não pôde ser compreendida pelo servidor")
+        self.causa=causa
+
+class NotFound(HTTPException):
+    def __init__(self, causa: str | None = None):
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail="Recurso não encontrado ou inexistente")
         self.causa = causa
 
-
-
-class BadRequest(AppException):
+class Conflict(HTTPException):
     def __init__(self, causa: str | None = None):
-        super().__init__("Solicitação Inválida. A solicitação não pôde ser compreendida pelo servidor",
-                         status.HTTP_400_BAD_REQUEST, causa)
+        super().__init__(status_code=status.HTTP_409_CONFLICT, detail="Recurso já em uso")
+        self.causa = causa
 
-class NotFound(AppException):
+class InternalServerError (HTTPException):
     def __init__(self, causa: str | None = None):
-        super().__init__("Recurso não encontrado ou inexistente", status.HTTP_404_NOT_FOUND, causa)
+        super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro no servidor, infelizmente deu xerém")
+        self.causa = causa
 
-class Conflict(AppException):
+class Forbidden (HTTPException):
     def __init__(self, causa: str | None = None):
-        super().__init__("Recurso já em uso", status.HTTP_409_CONFLICT, causa)
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Operação não autorizada")
+        self.causa = causa
 
-class InternalServerError (AppException):
+class Unauthorized (HTTPException):
     def __init__(self, causa: str | None = None):
-        super().__init__("Erro no servidor, infelizmente deu xerém", status.HTTP_500_INTERNAL_SERVER_ERROR, causa)
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas para esta operação")
+        self.causa = causa

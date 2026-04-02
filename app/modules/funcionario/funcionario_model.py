@@ -13,16 +13,28 @@ class Funcionario(Base):
 
     nome : Mapped[str] = mapped_column (String (255), nullable=False)
     email : Mapped[str] = mapped_column (String (255), nullable=False)
-    telefone: Mapped[str] = mapped_column(String(50), nullable=False)
     senha : Mapped[str] = mapped_column (String (255), nullable=False)
     cargo : Mapped[str] = mapped_column (String (255), nullable=False)
 
-    especialidadde: Mapped [list] = mapped_column (nullable=True)
-
-    ativo : Mapped[bool] = mapped_column (Boolean, nullable=False, server_default = "TRUE")
-
     is_admin : Mapped[bool] = mapped_column (Boolean, nullable=False)
-    is_colaborador: Mapped[bool] = mapped_column(Boolean, default="TRUE", server_default="TRUE")
+
+    #acessar o perfil de outro cliente
+    access_cliente: Mapped [bool] = mapped_column(Boolean, nullable=False)
+
+    # acessar o perfil de outro cliente
+    access_funcionario: Mapped [bool] = mapped_column(Boolean, nullable=False)
+
+    # acessar o servico
+    access_servico: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    # acessar o item_servico
+    access_item_servico: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    #acessar o ordem_serviço
+    access_ordem_servico: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="TRUE")
+    is_colaborador: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="TRUE")
 
     created_at: Mapped[datetime] = mapped_column (init=False, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column (init=False, server_default=func.now(), onupdate=func.now())

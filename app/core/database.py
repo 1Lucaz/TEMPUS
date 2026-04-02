@@ -11,16 +11,6 @@ load_dotenv()
 engine = create_engine (os.getenv('DATABASE_URL'), pool_pre_ping=True, pool_recycle=3600)
 SessionLocal = sessionmaker (autocommit=False, autoflush=False, bind=engine)
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    except Exception:
-        raise Exception
-    finally:
-        db.close()
-
 class Database:
     def __enter__ (self):
         self.session = SessionLocal()
@@ -31,7 +21,7 @@ class Database:
         try:
             if exc_type:
                 self.session.rollback()
-                raise f"ERRO DO TIPO - {exc_type} | MENSAGEM -> {exc_value}"
+                raise
 
             else:
                 try:
@@ -39,8 +29,12 @@ class Database:
 
                 except Exception:
                     self.session.rollback()
-                    raise f"ERRO DO TIPO - {exc_type} | MENSAGEM -> {exc_value}"
+                    raise
 
         finally:
             self.session.close()
 
+
+async def get_db ():
+    with Database() as db:
+        yield db

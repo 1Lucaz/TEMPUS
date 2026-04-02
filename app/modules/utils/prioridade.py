@@ -4,5 +4,5 @@ class Prioridade (Enum):
 
     URGENTE = "URGENTE"
     DATA_FIXA = "DATA FIXA"
-    PADRAO = "PADRAO"
+    PADRAO = "PADRÃO"
     INTANGIVEL = "INTANGÍVEL"
