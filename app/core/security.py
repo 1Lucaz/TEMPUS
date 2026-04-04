@@ -26,8 +26,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 def generate_password_hash(password: str) -> str | None:
     return password_hash.hash(password)
 
-def verify_password_hash(password_no_hash: str, password_hash: str) -> bool:
-    return password_hash.verify (password_no_hash, password_hash)
+def verify_password_hash(password_no_hash: str, password_hashed: str) -> bool:
+    return password_hash.verify (password_no_hash, password_hashed)
 
 
 
@@ -37,7 +37,7 @@ def create_acess_token (data: dict) -> str:
     expire = datetime.now(tz=ZoneInfo('UTC')) + timedelta(hours=3)
 
     to_encode.update ({'exp': expire})
-    encoded_jwt : str = encode (payload=to_encode, key=SECRET_KEY, algorithms=ALGORITHM)
+    encoded_jwt : str = encode (payload=to_encode, key=SECRET_KEY, algorithms=[ALGORITHM])
     return encoded_jwt
 
 
