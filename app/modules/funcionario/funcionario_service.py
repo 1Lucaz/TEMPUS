@@ -1,8 +1,10 @@
+from typing import Sequence
+
+from app.core.security import generate_password_hash
 from app.modules.funcionario.funcionario_model import Funcionario
 from app.modules.funcionario.funcionario_repository import FuncionarioRepository
-from app.modules.funcionario.funcionario_schema import FuncionarioCreate
-from app.modules.utils.app_exception import *
-from passlib.hash import pbkdf2_sha256 as hashgenerator
+from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate, FuncionarioResponse
+from app.modules.utils.app_exception import Conflict, BadRequest, NotFound, Unauthorized
 
 
 class FuncionarioService:
@@ -10,93 +12,124 @@ class FuncionarioService:
     def __init__(self, repository: FuncionarioRepository):
         self.repository = repository
 
-    def listar(self, id: int | None = None,
-               ativo: bool | None = None,
-               nome: str | None = None,
-               email: str | None = None,
-               is_admin: bool | None = None,
-               is_colaborador: bool | None = None,
-               telefone: str | None = None) -> list[type[Funcionario]]:
+    def buscar_um_funcionario(self,
+                              dados: FuncionarioResponse,
+                              usuario_atual: FuncionarioResponse) -> Funcionario:
 
-        condicoes_exigidas : dict = {   "id": id,
-                                        "ativo": ativo,
-                                        "nome": nome,
-                                        "email": email,
-                                        "telefone": telefone,
-                                        "is_admin": is_admin,
-                                        "is_colaborador": is_colaborador}
+        if not usuario_atual.access_funcionario:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        condicoes_pesquisa: dict = {campo : dado for campo, dado in condicoes_exigidas.items() if dado is not None}
+        condicoes_pesquisa = {campo: dado for campo, dado in dados.model_dump().items() if dado is not None}
+        return self.repository.buscar_um(**condicoes_pesquisa)
 
-        return self.repository.busca_dinamica(**condicoes_pesquisa)
+    def buscar_varios_funcionarios(self,
+                                   dados: FuncionarioResponse,
+                                   usuario_atual: FuncionarioResponse) -> Sequence[Funcionario]:
 
+        if not usuario_atual.access_funcionario:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-    def criar_funcionario(self, funcionario: FuncionarioCreate) -> Funcionario:
+        condicoes_pesquisa = {campo: dado for campo, dado in dados.model_dump().items() if dado is not None}
+        return self.repository.buscar_varios(**condicoes_pesquisa)
 
-        if self.repository.busca_dinamica(email=str(funcionario.email)) or self.repository.busca_dinamica(telefone=funcionario.telefone):
-            raise Conflict()
+    def buscar_todos_funcionarios(self,
+                                  usuario_atual: FuncionarioResponse) -> Sequence[Funcionario]:
 
-        funcionario_novo = Funcionario (
-            nome = funcionario.nome,
-            email=str(funcionario.email),
-            cargo=funcionario.cargo,
-            is_admin=funcionario.is_admin,
-            is_colaborador=funcionario.is_colaborador,
-            senha=hashgenerator.hash(funcionario.senha)
+        if not usuario_atual.access_funcionario:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+
+        return self.repository.buscar_todos()
+
+    def criar_funcionario(self,
+                          dados: FuncionarioCreate,
+                          usuario_atual: FuncionarioResponse) -> Funcionario:
+
+        if not usuario_atual.is_admin:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+
+        if self.repository.exists_email(email=str(dados.email)):
+            raise Conflict(causa="Email já em uso")
+
+        funcionario_novo = Funcionario(
+            nome=dados.nome,
+            email=str(dados.email),
+            cargo=dados.cargo,
+            senha=generate_password_hash(dados.senha),
+            is_admin=dados.is_admin,
+            is_colaborador=dados.is_colaborador,
+            access_cliente=dados.access_cliente,
+            access_funcionario=dados.access_funcionario,
+            access_servico=dados.access_servico,
+            access_item_servico=dados.access_item_servico,
+            access_ordem_servico=dados.access_ordem_servico,
         )
 
-        self.repository.salvar_funcionario(funcionario)
-        return funcionario
+        return self.repository.registrar_funcionario(funcionario_novo)
 
+    def atualizar_funcionario_por_si(self,
+                                     dados_novos: FuncionarioUpdate,
+                                     usuario_atual: FuncionarioResponse) -> Funcionario | None:
 
-    def atualizar(self,
-                  id: int,
-                  nome: str | None = None,
-                  email: str | None = None,
-                  cargo: str | None = None,
-                  is_colaborador: bool | None = None,
-                  is_admin: bool | None = None,
-                  ) -> Funcionario | None:
+        dados = dados_novos.model_dump(exclude_none=True)
 
-        if nome is None and email is None and cargo is None and is_admin is None and is_colaborador is None:
-            raise BadRequest(causa="Não há nenhum parâmetro para buscar o cliente")
+        if not dados:
+            raise BadRequest(causa="Nenhum dado informado para atualização")
 
-        dados_novos: dict = {campo:dado for campo,dado in
-                             {"nome": nome,
-                              "email": email,
-                              "cargo": cargo,
-                              "is_colaborador":is_colaborador,
-                              "is_admin": is_admin}.items() if dado is not None}
+        if "email" in dados and self.repository.exists_email(email=dados["email"]):
+            raise Conflict(causa="Email já em uso")
 
+        return self.repository.atualizar_funcionario_por_si(id=usuario_atual.id, dados_novos=dados)
 
-        funcionario = self.repository.buscar_por_id(id)
+    def atualizar_funcionario_por_funcionario(self,
+                                              dados_novos: FuncionarioUpdate,
+                                              dados_buscar: FuncionarioResponse | None,
+                                              usuario_atual: FuncionarioResponse) -> Funcionario | None:
 
-        if funcionario:
+        if not usuario_atual.access_funcionario:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-            if FuncionarioRepository.exists_email(dados_novos.get("email")):
-                raise Conflict (causa="Este email já está em uso")
+        dados = dados_novos.model_dump(exclude_none=True)
 
-            if FuncionarioRepository.exists_telefone(dados_novos.get("telefone")):
-                raise Conflict(causa="Este telefone já está em uso")
+        if not dados:
+            raise BadRequest(causa="Nenhum dado informado para atualização")
 
-            else:
-                funcionario = self.repository.atualizar_funcionario(id, dados_novos)
-                return funcionario
+        if "email" in dados and self.repository.exists_email(email=dados["email"]):
+            raise Conflict(causa="Email já em uso")
 
-        else:
-            raise NotFound(causa="Cliente não encontrado")
+        return self.repository.atualizar_funcionario_por_funcionario(
+            dados_novos=dados,
+            dados_buscar=dados_buscar.model_dump(exclude_none=True) if dados_buscar else None
+        )
 
+    def desativar_funcionario_por_si(self,
+                                     usuario_atual: FuncionarioResponse) -> Funcionario | None:
 
+        resultado = self.repository.desativar_funcionario_por_si(id=usuario_atual.id)
 
-    def desativar(self, id: int | None = None,
-                  email: str | None = None) -> type[Funcionario]:
+        if resultado is None:
+            raise NotFound(causa="Funcionário não encontrado")
 
-        if id is None and email is None:
-            raise BadRequest(causa="Não há nenhum parâmetro para desativar o cliente")
+        return resultado
 
-        cliente = self.repository.desativar_funcionario(id=id, email=email)
+    def desativar_funcionario_por_funcionario(self,
+                                              dados_buscar: FuncionarioResponse | None,
+                                              usuario_atual: FuncionarioResponse) -> Funcionario | None:
 
-        if cliente is None:
-            raise NotFound(causa="Cliente não encontrado")
+        if not usuario_atual.access_funcionario:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        return cliente
+        if dados_buscar is None:
+            raise BadRequest(causa="Nenhum dado informado para busca")
+
+        dados = dados_buscar.model_dump(exclude_none=True)
+
+        resultado = self.repository.desativar_funcionario_por_funcionario(
+            id=dados.get("id"),
+            email=dados.get("email"),
+            telefone=dados.get("telefone")
+        )
+
+        if resultado is None:
+            raise NotFound(causa="Funcionário não encontrado")
+
+        return resultado

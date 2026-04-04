@@ -1,4 +1,8 @@
+from typing import Sequence, cast
+
 from sqlalchemy.orm import Session
+from sqlalchemy import select, exists
+
 from app.modules.funcionario.funcionario_model import Funcionario
 
 
@@ -7,120 +11,171 @@ class FuncionarioRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def salvar_funcionario(self, funcionario: Funcionario) -> Funcionario:
+
+    def registrar_funcionario(self, funcionario: Funcionario) -> Funcionario:
         self.db.add(funcionario)
         self.db.flush()
         return funcionario
 
-    def atualizar_funcionario(self,
-                            id: int,
-                            dados_novos: dict) -> type[Funcionario] | None:
 
-        if id is None or dados_novos is None:
+    def atualizar_funcionario_por_si(self,
+                                     id: int,
+                                     dados_novos: dict) -> Funcionario | None:
+
+        if not dados_novos:
             return None
 
-        funcionario_antigo = self.db.get(Funcionario, id)
-
-        if funcionario_antigo is None:
-            return None
-
-        for campo, valor in dados_novos.items():
-            if hasattr(funcionario_antigo, campo):
-                setattr(funcionario_antigo, campo, valor)
-
-        self.db.flush()
-        return funcionario_antigo
-
-
-    def busca_dinamica (self,
-                        nome: str | None = None,
-                        email: str | None = None,
-                        telefone:str | None = None,
-                        ativo: bool | None = None,
-                        is_admin: bool | None = None) -> list [type[Funcionario]]:
-
-
-        query = self.db.query(Funcionario)
-
-        condicionais : dict = {"nome": nome,
-                               "email": email,
-                               "telefone": telefone,
-                               "ativo": ativo,
-                               "is_admin": is_admin}
-
-        for campo, dado in condicionais.items():
-
-            if dado is None:
-                continue
-
-            if campo == "nome":
-                coluna = getattr(Funcionario, campo)
-                query = query.filter(coluna.ilike(f"%{dado}%"))
-
-            else:
-                query = query.filter_by(**{campo: dado})
-
-        return query.all()
-
-
-
-    '''
-    a busca dinâmica pode buscar um ou vários clientes e, devido a confiabilidade, a função desativar foi limitada
-    para efetuar isso apenas quando for retornado um único e inequívoco registro, evitando que mais de um cliente possa 
-    ser desativado a cada requisição. Ass: Lucas
-    '''
-
-    def desativar_funcionario(self,
-                            id: int | None = None,
-                            email: str | None = None,
-                            telefone: str | None = None) -> type[Funcionario] | None:
-
-        condicionais = {"id": id, "email": email, "telefone": telefone}
-
-        if email is None and telefone is None and id is None:
-            return None
-
-        if id is not None:
-            funcionario = self.db.get(Funcionario, id)
-
-        else:
-
-            funcionario = self.db.query(Funcionario)
-
-            for campo, dado in condicionais.items():
-                if dado is None:
-                    continue
-
-                else:
-                    funcionario = funcionario.query(Funcionario).filter_by(**{campo: dado})
-
-            funcionario = funcionario.first()
+        funcionario = cast(Funcionario | None, self.db.get(Funcionario, id))
 
         if funcionario is None:
             return None
 
+        campos_permitidos = {"nome", "email", "telefone", "senha"}
+
+        for campo, valor in dados_novos.items():
+            if campo in campos_permitidos and hasattr(funcionario, campo):
+                setattr(funcionario, campo, valor)
+
+        return funcionario
+
+    def atualizar_funcionario_por_funcionario(self,
+                                              dados_novos: dict,
+                                              dados_buscar: dict | None) -> Funcionario | None:
+
+        if not dados_novos or not dados_buscar:
+            return None
+
+        if "id" in dados_buscar:
+            funcionario = cast(Funcionario | None, self.db.get(Funcionario, dados_buscar["id"]))
         else:
-            funcionario.ativo = False
-            self.db.flush()
-            return funcionario
+            funcionario = self.buscar_um(**dados_buscar)
+
+        if funcionario is None:
+            return None
+
+        for campo, valor in dados_novos.items():
+            if hasattr(funcionario, campo):
+                setattr(funcionario, campo, valor)
+
+        return funcionario
 
 
-    def buscar_por_id (self, id: int) -> type[Funcionario] | None:
+    def buscar_um(self,
+                  nome: str | None = None,
+                  email: str | None = None,
+                  telefone: str | None = None,
+                  ativo: bool | None = None,
+                  is_admin: bool | None = None) -> Funcionario | None:
+
+        condicionais = {campo: dado for campo, dado in locals().items()
+                        if dado is not None and campo != "self"}
+
+        if not condicionais:
+            return None
+
+        consulta = select(Funcionario).with_for_update()
+
+        for campo, dado in condicionais.items():
+
+            if campo == "nome":
+                consulta = consulta.where(Funcionario.nome.ilike(f"%{dado}%"))
+
+            elif campo == "ativo":
+                consulta = consulta.where(Funcionario.ativo.is_(dado))
+
+            elif campo == "is_admin":
+                consulta = consulta.where(Funcionario.is_admin.is_(dado))
+
+            else:
+                coluna = getattr(Funcionario, campo)
+                consulta = consulta.where(coluna == dado)
+
+        return self.db.execute(consulta).scalar_one_or_none()
+
+    def buscar_varios(self,
+                      nome: str | None = None,
+                      email: str | None = None,
+                      telefone: str | None = None,
+                      ativo: bool | None = None,
+                      is_admin: bool | None = None) -> Sequence[Funcionario] | None:
+
+        condicionais = {campo: dado for campo, dado in locals().items()
+                        if dado is not None and campo != "self"}
+
+        if not condicionais:
+            return None
+
+        consulta = select(Funcionario).with_for_update()
+
+        for campo, dado in condicionais.items():
+
+            if campo == "nome":
+                consulta = consulta.where(Funcionario.nome.ilike(f"%{dado}%"))
+
+            elif campo in ("ativo", "is_admin"):
+                coluna = getattr(Funcionario, campo)
+                consulta = consulta.where(coluna.is_(dado))
+
+            else:
+                coluna = getattr(Funcionario, campo)
+                consulta = consulta.where(coluna == dado)
+
+        return self.db.execute(consulta).scalars().all()
+
+    def buscar_todos(self) -> Sequence[Funcionario]:
+        return self.db.execute(select(Funcionario)).scalars().all()
+
+    def buscar_por_id(self, id: int) -> Funcionario | None:
 
         if id is None:
             return None
 
+        return cast(Funcionario | None, self.db.get(Funcionario, id, with_for_update=True))
+
+
+    '''
+    buscar_varios pode retornar múltiplos registros, portanto desativar foi
+    restrito a buscar_um — garantindo que apenas um funcionário seja afetado
+    por requisição. Ass: Lucas
+    '''
+
+    def desativar_funcionario_por_si(self, id: int) -> Funcionario | None:
+
+        funcionario = cast(Funcionario | None, self.db.get(Funcionario, id, with_for_update=True))
+
+        if funcionario is None:
+            return None
+
+        funcionario.ativo = False
+        return funcionario
+
+    def desativar_funcionario_por_funcionario(self,
+                                              id: int | None = None,
+                                              email: str | None = None,
+                                              telefone: str | None = None) -> Funcionario | None:
+
+        condicionais = {campo: dado for campo, dado in locals().items()
+                        if dado is not None and campo != "self"}
+
+        if not condicionais:
+            return None
+
+        if id:
+            funcionario = cast(Funcionario | None, self.db.get(Funcionario, id, with_for_update=True))
         else:
-            funcionario = self.db.get(Funcionario, id)
+            funcionario = self.buscar_um(email=email, telefone=telefone)
 
-            if funcionario is None:
-                return None
-            else:
-                return funcionario
+        if funcionario is None:
+            return None
+
+        funcionario.ativo = False
+        return funcionario
 
 
-    def exists_email (self, email:str | None = None) -> bool:
-        return self.db.query(Funcionario).filter_by(email=email).exists().scalar()
+    def exists_email(self, email: str | None = None) -> bool:
+        consulta = select(exists().where(Funcionario.email == email))
+        return self.db.execute(consulta).scalar()
 
     def exists_telefone(self, telefone: str | None = None) -> bool:
-        return self.db.query(Funcionario).filter_by(telefone=telefone).exists().scalar()
+        consulta = select(exists().where(Funcionario.telefone == telefone))
+        return self.db.execute(consulta).scalar()
