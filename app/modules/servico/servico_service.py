@@ -1,105 +1,89 @@
-from psycopg2 import sql, Error
-from app.core.database import Database
-from app.modules.servico.servico_schema import ServicoCreate, ServicoUpdate
+from typing import Sequence
+
+from app.modules.funcionario.funcionario_schema import FuncionarioResponse
+from app.modules.servico.servico_model import Servico
+from app.modules.servico.servico_repository import ServicoRepository
+from app.modules.servico.servico_schema import ServicoCreate, ServicoUpdate, ServicoBase
+from app.modules.utils.app_exception import Unauthorized, NotFound, BadRequest, Conflict
 
 
 class ServicoService:
 
-    @staticmethod
-    def listar(ativo: bool | None = None, descricao: str | None = None):
-        listar = sql.SQL('''SELECT id, descricao, valor_base, ativo FROM servico''')
-        campos = []
-        valores = []
+    def __init__(self, repository: ServicoRepository):
+        self.repository = repository
 
-        if ativo is not None:
-            campos.append(sql.SQL('ativo = %s'))
-            valores.append(ativo)
+    def buscar_varios(self,
+                      dados: ServicoBase,
+                      usuario_atual: FuncionarioResponse) -> Sequence[Servico] | None:
 
-        if descricao:
-            campos.append(sql.SQL('descricao ILIKE %s'''))
-            valores.append(f"%{descricao}%")
+        if not usuario_atual.access_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        if campos:
-            listar += sql.SQL(' WHERE ') + sql.SQL(' AND ').join(campos)
+        condicionais = {campo: dado for campo, dado in dados.model_dump().items() if dado is not None}
+        return self.repository.buscar_varios(**condicionais)
 
-        with Database() as db:
-            db.execute(listar, tuple(valores) if valores else None)
-            return db.fetchall()
+    def buscar_todos(self, usuario_atual: FuncionarioResponse) -> Sequence[Servico]:
 
-    @staticmethod
-    def criar_servico(servico: ServicoCreate):
-        criar = '''
-                INSERT INTO servico (descricao, valor_base, ativo)
-                VALUES (%s, %s, TRUE) 
-                RETURNING id, descricao, valor_base, ativo
-                '''
-        valores = (servico.descricao, servico.valor_base)
+        if not usuario_atual.access_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        try:
-            with Database() as db:
-                db.execute(criar, valores)
-                return db.fetchone()
+        return self.repository.buscar_todos()
 
-        except Error as e:
-            raise e
+    def buscar_por_id(self, id: int, usuario_atual: FuncionarioResponse) -> Servico:
 
-    @staticmethod
-    def buscar_por_id(id: int):
-        buscar_id = '''SELECT id, descricao, valor_base, ativo FROM servico WHERE id = %s'''
-        with Database() as db:
-            db.execute(buscar_id, (id,))
-            return db.fetchone()
+        if not usuario_atual.access_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-    @staticmethod
-    def atualizar(id: int, servico: ServicoUpdate):
-        campos = []
-        valores = []
+        servico = self.repository.buscar_por_id(id)
 
-        if servico.descricao is not None:
-            campos.append(sql.SQL('descricao = %s'))
-            valores.append(servico.descricao)
+        if servico is None:
+            raise NotFound(causa="Serviço não encontrado")
 
-        if servico.valor_base is not None:
-            campos.append(sql.SQL('valor_base = %s'))
-            valores.append(servico.valor_base)
+        return servico
 
-        if servico.ativo is not None:
-            campos.append(sql.SQL('ativo = %s'))
-            valores.append(servico.ativo)
+    def criar_servico(self, dados: ServicoCreate, usuario_atual: FuncionarioResponse) -> Servico:
 
-        if not campos:
-            raise ValueError("Nenhum dado enviado para atualização")
+        if not usuario_atual.access_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        valores.append(id)
+        if self.repository.exists_descricao(dados.descricao):
+            raise Conflict(causa="Já existe um serviço com esta descrição")
 
-        atualizar = sql.SQL('''UPDATE servico SET {campos} WHERE id = %s
-            RETURNING id, descricao, valor_base, ativo''').format(campos=sql.SQL(', ').join(campos))
+        servico_novo = Servico(
+            descricao=dados.descricao,
+            valor_base=dados.valor_base,
+        )
 
-        try:
-            with Database() as db:
-                db.execute(atualizar, tuple(valores))
-                resultado = db.fetchone()
+        return self.repository.registrar_servico(servico_novo)
 
-                if not resultado:
-                    raise ValueError("SERVIÇO NÃO ENCONTRADO")
+    def atualizar_servico(self,
+                          id: int,
+                          dados_novos: ServicoUpdate,
+                          usuario_atual: FuncionarioResponse) -> Servico | None:
 
-                return resultado
+        if not usuario_atual.access_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        except Error as e:
-            raise e
+        dados = dados_novos.model_dump(exclude_none=True)
 
-    @staticmethod
-    def desativar(id: int):
-        sql_desativar = '''
-              UPDATE servico SET ativo = FALSE
-              WHERE id = %s RETURNING id, descricao, valor_base, ativo
-              '''
+        if not dados:
+            raise BadRequest(causa="Nenhum dado informado para atualização")
 
-        with Database() as db:
-            db.execute(sql_desativar, (id,))
-            resultado = db.fetchone()
+        servico = self.repository.atualizar_servico(id=id, dados_novos=dados)
 
-            if not resultado:
-                raise ValueError("SERVIÇO NÃO ENCONTRADO")
+        if servico is None:
+            raise NotFound(causa="Serviço não encontrado")
 
-        return resultado
+        return servico
+
+    def desativar_servico(self, id: int, usuario_atual: FuncionarioResponse) -> Servico | None:
+
+        if not usuario_atual.access_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+
+        servico = self.repository.desativar_servico(id=id)
+
+        if servico is None:
+            raise NotFound(causa="Serviço não encontrado")
+
+        return servico

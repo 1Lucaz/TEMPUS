@@ -1,52 +1,67 @@
-from fastapi import APIRouter, status, Body
-from typing import List, Optional
 from datetime import date
+
+from fastapi import APIRouter, Depends
+
+from app.core.dependencies import get_ordem_servico_service
+from app.core.security import get_usuario_atual
+from app.modules.cliente.cliente_schema import ClienteResponse
+from app.modules.funcionario.funcionario_schema import FuncionarioResponse
 from app.modules.ordem_servico.ordem_servico_schema import OrdemCreate, OrdemUpdate, OrdemBase
 from app.modules.ordem_servico.ordem_servico_service import OrdemServicoService
-from app.modules.utils.exceptions import tratar_exception
+from app.modules.utils.app_exception import *
 
 router = APIRouter(prefix="/ordens", tags=["Ordens de Serviço"])
 
-@router.get("/", response_model=List[OrdemBase])
-def listar_ordens(
-    ativo: Optional[bool] = None,
-    status_os: Optional[str] = None,
-    cliente_id: Optional[int] = None,
-    data_inicio: Optional[date] = None,
-    data_fim: Optional[date] = None
-):
-    return OrdemServicoService.listar(
-        ativo=ativo,
-        status=status_os,
-        cliente_id=cliente_id,
-        data_inicio=data_inicio,
-        data_fim=data_fim
-    )
 
-@router.post("/", response_model=OrdemBase, status_code=status.HTTP_201_CREATED)
-def criar_ordem(ordem: OrdemCreate):
-    try:
-        return OrdemServicoService.criar(ordem)
-    except Exception as e:
-        tratar_exception(e)
+@router.get("/",
+            response_model=list[OrdemBase],
+            status_code=status.HTTP_200_OK)
+def buscar_todos_ordens(service: OrdemServicoService = Depends(get_ordem_servico_service),
+                        usuario_atual: FuncionarioResponse | ClienteResponse = Depends(get_usuario_atual)):
+    return service.buscar_todos(usuario_atual)
 
-@router.get("/{id}", response_model=OrdemBase)
-def buscar_ordem(id: int):
-    ordem = OrdemServicoService.buscar_por_id(id)
-    if not ordem:
-        tratar_exception(ValueError("ORDEM NÃO ENCONTRADA"))
-    return ordem
 
-@router.put("/{id}", response_model=OrdemBase)
-def atualizar_ordem(id: int, dados: OrdemUpdate = Body(..., example = {})):
-    try:
-        return OrdemServicoService.atualizar(id, dados)
-    except Exception as e:
-        tratar_exception(e)
+@router.get("/buscar",
+            response_model=list[OrdemBase],
+            status_code=status.HTTP_200_OK)
+def buscar_varios_ordens(dados_buscar: OrdemBase,
+                         service: OrdemServicoService = Depends(get_ordem_servico_service),
+                         usuario_atual: FuncionarioResponse | ClienteResponse = Depends(get_usuario_atual)):
+    return service.buscar_varios(dados_buscar, usuario_atual)
 
-@router.post("/{id}/desativar", response_model=OrdemBase)
-def desativar_ordem(id: int):
-    try:
-        return OrdemServicoService.desativar(id)
-    except Exception as e:
-        tratar_exception(e)
+
+@router.get("/{id}",
+            response_model=OrdemBase,
+            status_code=status.HTTP_200_OK)
+def buscar_ordem_por_id(id: int,
+                        service: OrdemServicoService = Depends(get_ordem_servico_service),
+                        usuario_atual: FuncionarioResponse | ClienteResponse = Depends(get_usuario_atual)):
+    return service.buscar_por_id(id, usuario_atual)
+
+
+@router.post("/",
+             response_model=OrdemBase,
+             status_code=status.HTTP_201_CREATED)
+def criar_ordem(dados: OrdemCreate,
+                service: OrdemServicoService = Depends(get_ordem_servico_service),
+                usuario_atual: FuncionarioResponse | ClienteResponse = Depends(get_usuario_atual)):
+    return service.criar_ordem(dados, usuario_atual)
+
+
+@router.patch("/{id}",
+              response_model=OrdemBase,
+              status_code=status.HTTP_200_OK)
+def atualizar_ordem(id: int,
+                    dados_novos: OrdemUpdate,
+                    service: OrdemServicoService = Depends(get_ordem_servico_service),
+                    usuario_atual: FuncionarioResponse = Depends(get_usuario_atual)):
+    return service.atualizar_ordem(id=id, dados_novos=dados_novos, usuario_atual=usuario_atual)
+
+
+@router.patch("/{id}/desativar",
+              response_model=OrdemBase,
+              status_code=status.HTTP_200_OK)
+def desativar_ordem(id: int,
+                    service: OrdemServicoService = Depends(get_ordem_servico_service),
+                    usuario_atual: FuncionarioResponse = Depends(get_usuario_atual)):
+    return service.desativar_ordem(id=id, usuario_atual=usuario_atual)

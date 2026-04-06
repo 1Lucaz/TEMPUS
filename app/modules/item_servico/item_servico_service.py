@@ -1,143 +1,100 @@
-from psycopg2 import sql, Error
-from app.core.database import Database
-from app.modules.item_servico.item_servico_schema import ItemCreate, ItemUpdate
+from typing import Sequence
+
+from app.modules.funcionario.funcionario_schema import FuncionarioResponse
+from app.modules.item_servico.item_servico_model import ItemServico
+from app.modules.item_servico.item_servico_repository import ItemServicoRepository
+from app.modules.item_servico.item_servico_schema import ItemCreate, ItemUpdate, ItemBase
+from app.modules.utils.app_exception import Unauthorized, NotFound, BadRequest, Conflict
 
 
-class ItemService:
+class ItemServicoService:
 
-    @staticmethod
-    def listar(ativo: bool | None = None, ordem_servico_id: int | None = None):
-        listar = '''
-            SELECT id, ordem_servico_id, servico_id, valor, ativo 
-            FROM item_servico
-        '''
-        campos = []
-        valores = []
+    def __init__(self, repository: ItemServicoRepository):
+        self.repository = repository
 
-        if ativo is not None:
-            campos.append('ativo = %s')
-            valores.append(ativo)
+    def buscar_varios(self,
+                      dados: ItemBase,
+                      usuario_atual: FuncionarioResponse) -> Sequence[ItemServico] | None:
 
-        if ordem_servico_id is not None:
-            campos.append('ordem_servico_id = %s')
-            valores.append(ordem_servico_id)
+        if not usuario_atual.access_item_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        if campos:
-            listar += ' WHERE ' + ' AND '.join(campos)
+        condicionais = {campo: dado for campo, dado in dados.model_dump().items() if dado is not None}
+        return self.repository.buscar_varios(**condicionais)
 
-        with Database() as db:
-            db.execute(listar, tuple(valores))
-            return db.fetchall()
+    def buscar_todos(self,
+                     usuario_atual: FuncionarioResponse) -> Sequence[ItemServico]:
 
-    @staticmethod
-    def criar_item(item: ItemCreate):
-        check_servico = '''
-            SELECT id FROM servico 
-            WHERE id = %s AND ativo = TRUE
-        '''
+        if not usuario_atual.access_item_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        check_ordem = '''
-            SELECT id FROM ordem_servico 
-            WHERE id = %s AND ativo = TRUE
-        '''
+        return self.repository.buscar_todos()
 
-        criar = '''
-            INSERT INTO item_servico (ordem_servico_id, servico_id, valor, ativo)
-            VALUES (%s, %s, %s, TRUE)
-            RETURNING id, ordem_servico_id, servico_id, valor, ativo
-        '''
+    def buscar_por_id(self,
+                      id: int,
+                      usuario_atual: FuncionarioResponse) -> ItemServico:
 
-        valores = (item.ordem_servico_id, item.servico_id, item.valor)
+        if not usuario_atual.access_item_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        try:
-            with Database() as db:
+        item = self.repository.buscar_por_id(id)
 
-                db.execute(check_servico, (item.servico_id,))
-                if not db.fetchone():
-                    raise ValueError("SERVIÇO NÃO EXISTE OU ESTÁ INATIVO")
+        if item is None:
+            raise NotFound(causa="Item não encontrado")
 
-                db.execute(check_ordem, (item.ordem_servico_id,))
-                if not db.fetchone():
-                    raise ValueError("ORDEM DE SERVIÇO NÃO EXISTE OU ESTÁ INATIVA")
+        return item
 
-                db.execute(criar, valores)
-                return db.fetchone()
+    def criar_item(self,
+                   dados: ItemCreate,
+                   usuario_atual: FuncionarioResponse) -> ItemServico:
 
-        except Error as e:
-            raise e
+        if not usuario_atual.access_item_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-    @staticmethod
-    def buscar_por_id(id: int):
-        buscar_id = '''
-            SELECT id, ordem_servico_id, servico_id, valor, ativo
-            FROM item_servico
-            WHERE id = %s
-        '''
+        if not self.repository.exists_servico(dados.servico_id):
+            raise NotFound(causa="Serviço não existe ou está inativo")
 
-        with Database() as db:
-            db.execute(buscar_id, (id,))
-            return db.fetchone()
+        if not self.repository.exists_ordem_servico(dados.ordem_servico_id):
+            raise NotFound(causa="Ordem de serviço não existe ou está inativa")
 
-    @staticmethod
-    def atualizar(id: int, dados: ItemUpdate):
-        campos = []
-        valores = []
+        item_novo = ItemServico(
+            ordem_servico_id=dados.ordem_servico_id,
+            servico_id=dados.servico_id,
+            valor=dados.valor,
+        )
 
-        if dados.ordem_servico_id is not None:
-            campos.append(sql.SQL('ordem_servico_id = %s'))
-            valores.append(dados.ordem_servico_id)
+        return self.repository.registrar_item(item_novo)
 
-        if dados.servico_id is not None:
-            campos.append(sql.SQL('servico_id = %s'))
-            valores.append(dados.servico_id)
+    def atualizar_item(self,
+                       id: int,
+                       dados_novos: ItemUpdate,
+                       usuario_atual: FuncionarioResponse) -> ItemServico | None:
 
-        if dados.valor is not None:
-            campos.append(sql.SQL('valor = %s'))
-            valores.append(dados.valor)
+        if not usuario_atual.access_item_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        if dados.ativo is not None:
-            campos.append(sql.SQL('ativo = %s'))
-            valores.append(dados.ativo)
+        dados = dados_novos.model_dump(exclude_none=True)
 
-        if not campos:
-            raise ValueError("Nenhum dado enviado para atualização")
+        if not dados:
+            raise BadRequest(causa="Nenhum dado informado para atualização")
 
-        valores.append(id)
+        item = self.repository.atualizar_item(id=id, dados_novos=dados)
 
-        atualizar = sql.SQL('''
-            UPDATE item_servico 
-            SET {campos}
-            WHERE id = %s
-            RETURNING id, ordem_servico_id, servico_id, valor, ativo
-        ''').format(campos=sql.SQL(', ').join(campos))
+        if item is None:
+            raise NotFound(causa="Item não encontrado")
 
-        try:
-            with Database() as db:
-                db.execute(atualizar, tuple(valores))
-                resultado = db.fetchone()
+        return item
 
-                if not resultado:
-                    raise ValueError("ITEM NÃO ENCONTRADO")
+    def desativar_item(self,
+                       id: int,
+                       usuario_atual: FuncionarioResponse) -> ItemServico | None:
 
-                return resultado
+        if not usuario_atual.access_item_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        except Error as e:
-            raise e
+        item = self.repository.desativar_item(id=id)
 
-    @staticmethod
-    def desativar(id: int):
-        desativar = '''
-            UPDATE item_servico 
-            SET ativo = FALSE 
-            WHERE id = %s 
-            RETURNING id, ordem_servico_id, servico_id, valor, ativo
-        '''
+        if item is None:
+            raise NotFound(causa="Item não encontrado")
 
-        with Database() as db:
-            db.execute(desativar, (id,))
-            resultado = db.fetchone()
-
-            if not resultado:
-                raise ValueError("ITEM NÃO ENCONTRADO")
-
-            return resultado
+        return item

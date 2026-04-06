@@ -5,7 +5,8 @@ description = ""
 package-mode=false
 authors = [
     {name = "matheusssi"},
-    {name = "1llucaz"}
+    {name = "1llucaz"},
+    {name= "Geronimo1217"}
 ]
 requires-python = ">=3.13"
 dependencies = [
@@ -19,7 +20,8 @@ dependencies = [
     "uvicorn[standard] (>=0.21.0)",
     "pyjwt (>=2.12.1,<3.0.0)",
     "tzdata (>=2025.3,<2026.0)",
-    "pwdlib[argon2] (>=0.3.0,<0.4.0)"
+    "pwdlib[argon2] (>=0.3.0,<0.4.0)",
+    "python-multipart (>= 0.0.22)"
 ]
 
 

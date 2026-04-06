@@ -1,136 +1,102 @@
 from datetime import date
-from psycopg2 import sql, Error
-from app.core.database import Database
-from app.modules.ordem_servico.ordem_servico_schema import OrdemCreate, OrdemUpdate
+from typing import Sequence
+
+from app.modules.cliente.cliente_schema import ClienteResponse
+from app.modules.funcionario.funcionario_schema import FuncionarioResponse
+from app.modules.ordem_servico.ordem_servico_model import OrdemServico
+from app.modules.ordem_servico.ordem_servico_repository import OrdemServicoRepository
+from app.modules.ordem_servico.ordem_servico_schema import OrdemCreate, OrdemUpdate, OrdemBase
+from app.modules.utils.app_exception import Unauthorized, NotFound, BadRequest
 
 
 class OrdemServicoService:
 
-    @staticmethod
-    def listar(ativo: bool | None = None, status: str | None = None, cliente_id: int | None = None,
-               data_inicio: date | None = None, data_fim: date | None = None):
-        listar = sql.SQL('''SELECT id, cliente_id, data_abertura, status, ativo FROM ordem_servico''')
-        campos = []
-        valores = []
+    def __init__(self, repository: OrdemServicoRepository):
+        self.repository = repository
 
-        if ativo is not None:
-            campos.append(sql.SQL('ativo = %s'))
-            valores.append(ativo)
+    def buscar_varios(self,
+                      dados: OrdemBase,
+                      usuario_atual: FuncionarioResponse | ClienteResponse) -> Sequence[OrdemServico] | None:
 
-        if status:
-            campos.append(sql.SQL('status = %s'))
-            valores.append(status)
+        if not usuario_atual.access_ordem_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        if cliente_id:
-            campos.append(sql.SQL('cliente_id = %s'))
-            valores.append(cliente_id)
+        condicionais = {campo: dado for campo, dado in dados.model_dump().items() if dado is not None}
+        return self.repository.buscar_varios(**condicionais)
 
-        if data_inicio:
-            campos.append(sql.SQL('data_abertura >= %s'))
-            valores.append(data_inicio)
+    def buscar_todos(self,
+                     usuario_atual: FuncionarioResponse | ClienteResponse) -> Sequence[OrdemServico]:
 
-        if data_fim:
-            campos.append(sql.SQL('data_abertura <= %s'))
-            valores.append(data_fim)
+        if not usuario_atual.access_ordem_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        if campos:
-            listar += sql.SQL(' WHERE ') + sql.SQL(' AND ').join(campos)
+        return self.repository.buscar_todos()
 
-        with Database() as db:
-            db.execute(listar, tuple(valores) if valores else None)
-            return db.fetchall()
+    def buscar_por_id(self,
+                      id: int,
+                      usuario_atual: FuncionarioResponse | ClienteResponse) -> OrdemServico:
 
-    @staticmethod
-    def criar(ordem: OrdemCreate):
-        verificar_cliente = 'SELECT id FROM cliente WHERE id = %s AND ativo = %s'
+        if not usuario_atual.access_ordem_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        criar = sql.SQL('''
-                INSERT INTO ordem_servico (cliente_id, data_abertura, status, ativo)
-                VALUES (%s, %s, %s, %s) 
-                RETURNING id, cliente_id, data_abertura::date as data_abertura, status, ativo
-                ''')
+        ordem = self.repository.buscar_por_id(id)
 
-        valores_insert = (
-            ordem.cliente_id,
-            ordem.data_abertura,
-            ordem.status.value,
-            True
+        if ordem is None:
+            raise NotFound(causa="Ordem de serviço não encontrada")
+
+        return ordem
+
+    def criar_ordem(self,
+                    dados: OrdemCreate,
+                    usuario_atual: FuncionarioResponse | ClienteResponse) -> OrdemServico:
+
+        if not usuario_atual.access_ordem_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+
+        if not self.repository.exists_cliente(dados.cliente_id):
+            raise NotFound(causa="Cliente não existe ou está inativo")
+
+        ordem_nova = OrdemServico(
+            cliente_id=dados.cliente_id,
+            data_abertura=dados.data_abertura,
+            status=dados.status.value,
         )
 
-        try:
-            with Database() as db:
-                db.execute(verificar_cliente, (ordem.cliente_id, True))
-                cliente_existe = db.fetchone()
+        return self.repository.registrar_ordem(ordem_nova)
 
-                if not cliente_existe:
-                    raise ValueError("CLIENTE NÃO EXISTE OU ESTÁ INATIVO")
+    def atualizar_ordem(self,
+                        id: int,
+                        dados_novos: OrdemUpdate,
+                        usuario_atual: FuncionarioResponse) -> OrdemServico | None:
 
-                db.execute(criar, valores_insert)
-                return db.fetchone()
+        if not usuario_atual.access_ordem_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        except Error as e:
-            raise e
+        dados = dados_novos.model_dump(exclude_none=True)
 
-    @staticmethod
-    def buscar_por_id(id: int):
-        buscar_id = sql.SQL('''SELECT id, cliente_id, data_abertura, status, ativo FROM ordem_servico WHERE id = %s;''')
-        with Database() as db:
-            db.execute(buscar_id, (id,))
-            return db.fetchone()
+        if not dados:
+            raise BadRequest(causa="Nenhum dado informado para atualização")
 
-    @staticmethod
-    def atualizar(id: int, ordem: OrdemUpdate):
-        campos = []
-        valores = []
+        if "status" in dados:
+            dados["status"] = dados["status"].value
 
-        if ordem.cliente_id is not None:
-            campos.append(sql.SQL('cliente_id = %s'))
-            valores.append(ordem.cliente_id)
+        ordem = self.repository.atualizar_ordem(id=id, dados_novos=dados)
 
-        if ordem.data_abertura is not None:
-            campos.append(sql.SQL('data_abertura = %s'))
-            valores.append(ordem.data_abertura)
+        if ordem is None:
+            raise NotFound(causa="Ordem de serviço não encontrada")
 
-        if ordem.status is not None:
-            campos.append(sql.SQL('status = %s'))
-            valores.append(ordem.status.value)
+        return ordem
 
-        if ordem.ativo is not None:
-            campos.append(sql.SQL('ativo = %s'))
-            valores.append(ordem.ativo)
+    def desativar_ordem(self,
+                        id: int,
+                        usuario_atual: FuncionarioResponse) -> OrdemServico | None:
 
-        if not campos:
-            raise ValueError("Nenhum dado enviado para atualização")
+        if not usuario_atual.access_ordem_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        valores.append(id)
+        ordem = self.repository.desativar_ordem(id=id)
 
-        atualizar = sql.SQL('''UPDATE ordem_servico SET {campos} WHERE id = %s
-                                RETURNING id, cliente_id, data_abertura, status, ativo
-                            ''').format(campos=sql.SQL(', ').join(campos))
+        if ordem is None:
+            raise NotFound(causa="Ordem de serviço não encontrada")
 
-        try:
-            with Database() as db:
-                db.execute(atualizar, tuple(valores))
-                resultado = db.fetchone()
-
-                if not resultado:
-                    raise ValueError("ORDEM NÃO ENCONTRADA")
-
-                return resultado
-
-        except Error as e:
-            raise e
-
-    @staticmethod
-    def desativar(id: int):
-        desativar = sql.SQL('''UPDATE ordem_servico SET ativo = FALSE WHERE id = %s 
-        RETURNING id, cliente_id, data_abertura, status, ativo''')
-
-        with Database() as db:
-            db.execute(desativar, (id,))
-            resultado = db.fetchone()
-
-            if not resultado:
-                raise ValueError("ORDEM NÃO ENCONTRADA")
-
-            return resultado
+        return ordem
