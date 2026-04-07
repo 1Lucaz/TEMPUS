@@ -1,9 +1,11 @@
+# funcionario_service.py
+
 from typing import Sequence
 
 from app.core.security import generate_password_hash
 from app.modules.funcionario.funcionario_model import Funcionario
 from app.modules.funcionario.funcionario_repository import FuncionarioRepository
-from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate, FuncionarioResponse
+from app.modules.funcionario.funcionario_schema import FuncionarioCreate, FuncionarioUpdate, FuncionarioResponse, FuncionarioInput
 from app.modules.utils.app_exception import Conflict, BadRequest, NotFound, Unauthorized
 
 
@@ -13,7 +15,7 @@ class FuncionarioService:
         self.repository = repository
 
     def buscar_um_funcionario(self,
-                              dados: FuncionarioResponse,
+                              dados: FuncionarioInput,
                               usuario_atual: FuncionarioResponse) -> Funcionario:
 
         if not usuario_atual.access_funcionario:
@@ -23,13 +25,13 @@ class FuncionarioService:
         return self.repository.buscar_um(**condicoes_pesquisa)
 
     def buscar_varios_funcionarios(self,
-                                   dados: FuncionarioResponse,
+                                   dados: FuncionarioInput,
                                    usuario_atual: FuncionarioResponse) -> Sequence[Funcionario]:
 
         if not usuario_atual.access_funcionario:
             raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        condicoes_pesquisa = {campo: dado for campo, dado in dados.model_dump().items() if dado is not None}
+        condicoes_pesquisa = dados.model_dump(exclude_none=True)
         return self.repository.buscar_varios(**condicoes_pesquisa)
 
     def buscar_todos_funcionarios(self,
@@ -75,30 +77,30 @@ class FuncionarioService:
         if not dados:
             raise BadRequest(causa="Nenhum dado informado para atualização")
 
-        if "email" in dados and self.repository.exists_email(email=dados["email"]):
+        if "email" in dados and self.repository.exists_email(email=str(dados["email"])):
             raise Conflict(causa="Email já em uso")
 
         return self.repository.atualizar_funcionario_por_si(id=usuario_atual.id, dados_novos=dados)
 
     def atualizar_funcionario_por_funcionario(self,
                                               dados_novos: FuncionarioUpdate,
-                                              dados_buscar: FuncionarioResponse | None,
+                                              dados_buscar: FuncionarioInput | None,
                                               usuario_atual: FuncionarioResponse) -> Funcionario | None:
 
         if not usuario_atual.access_funcionario:
             raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        dados = dados_novos.model_dump(exclude_none=True)
+        dados_novos = dados_novos.model_dump(exclude_none=True)
 
-        if not dados:
+        if not dados_novos:
             raise BadRequest(causa="Nenhum dado informado para atualização")
 
-        if "email" in dados and self.repository.exists_email(email=dados["email"]):
+        if "email" in dados_novos and self.repository.exists_email(email=dados_novos.get("email")):
             raise Conflict(causa="Email já em uso")
 
         return self.repository.atualizar_funcionario_por_funcionario(
-            dados_novos=dados,
-            dados_buscar=dados_buscar.model_dump(exclude_none=True) if dados_buscar else None
+            dados_novos=dados_novos,
+            dados_buscar=dados_buscar.model_dump(exclude_none=True)
         )
 
     def desativar_funcionario_por_si(self,
@@ -112,7 +114,7 @@ class FuncionarioService:
         return resultado
 
     def desativar_funcionario_por_funcionario(self,
-                                              dados_buscar: FuncionarioResponse | None,
+                                              dados_buscar: FuncionarioInput | None,
                                               usuario_atual: FuncionarioResponse) -> Funcionario | None:
 
         if not usuario_atual.access_funcionario:

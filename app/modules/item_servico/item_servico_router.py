@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, status
+
 from app.core.dependencies import get_item_servico_service
 from app.core.security import get_usuario_atual
 from app.modules.funcionario.funcionario_schema import FuncionarioResponse
 from app.modules.item_servico.item_servico_service import ItemServicoService
-from app.modules.item_servico.item_servico_schema import ItemCreate, ItemUpdate, ItemBase
-
+from app.modules.item_servico.item_servico_schema import ItemCreate, ItemUpdate, ItemBase, ItemInput
 
 router = APIRouter(prefix="/itens", tags=["Itens de Serviço"])
+
 
 @router.get("/",
             response_model=list[ItemBase],
@@ -19,7 +20,7 @@ def buscar_todos_itens(service: ItemServicoService = Depends(get_item_servico_se
 @router.get("/buscar",
             response_model=list[ItemBase],
             status_code=status.HTTP_200_OK)
-def buscar_varios_itens(dados_buscar: ItemBase,
+def buscar_varios_itens(dados_buscar: ItemInput,
                         service: ItemServicoService = Depends(get_item_servico_service),
                         usuario_atual: FuncionarioResponse = Depends(get_usuario_atual)):
     return service.buscar_varios(dados_buscar, usuario_atual)

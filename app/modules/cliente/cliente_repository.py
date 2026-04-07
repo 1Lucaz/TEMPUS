@@ -12,16 +12,17 @@ class ClienteRepository:
 
     def registrar_cliente(self, cliente: Cliente) -> Cliente:
         self.db.add(cliente)
+        self.db.flush()
         return cliente
 
-    def atualizar_cliente_por_cliente   (self,
-                                        id: int | None,
-                                        dados_novos: dict) -> Cliente | None:
+    def atualizar_cliente_por_cliente(self,
+                                      id: int | None,
+                                      dados_novos: dict) -> Cliente | None:
 
         if not dados_novos:
             return None
 
-        cliente_antigo = cast (Cliente | None, self.db.get(Cliente, id))
+        cliente_antigo = cast(Cliente | None, self.db.get(Cliente, id))
 
         if cliente_antigo is None:
             return None
@@ -53,15 +54,15 @@ class ClienteRepository:
 
         return cliente_antigo
 
-    def buscar_um   (self,
-                    nome: str | None = None,
-                    email: str | None = None,
-                    telefone: str | None = None,
-                    ativo: bool | None = None) -> Cliente | None:
+    def buscar_um(self,
+                  nome: str | None = None,
+                  email: str | None = None,
+                  telefone: str | None = None,
+                  ativo: bool | None = None) -> Cliente | None:
 
         condicionais = {campo: dado for campo, dado in locals().items() if dado is not None and campo != "self"}
 
-        consulta = select(Cliente).with_for_update(True)
+        consulta = select(Cliente).with_for_update()
 
         for campo, dado in condicionais.items():
 
@@ -83,15 +84,15 @@ class ClienteRepository:
 
         return self.db.execute(consulta).scalar_one_or_none()
 
-    def buscar_varios   (self,
-                        nome: str | None = None,
-                        email: str | None = None,
-                        telefone: str | None = None,
-                        ativo: bool | None = None) -> Sequence[Cliente] | None:
+    def buscar_varios(self,
+                      nome: str | None = None,
+                      email: str | None = None,
+                      telefone: str | None = None,
+                      ativo: bool | None = None) -> Sequence[Cliente] | None:
 
         condicionais = {campo: dado for campo, dado in locals().items() if dado is not None and campo != "self"}
 
-        consulta = select(Cliente).with_for_update(True)
+        consulta = select(Cliente).with_for_update()
 
         for campo, dado in condicionais.items():
 
@@ -119,11 +120,11 @@ class ClienteRepository:
     def buscar_todos(self) -> Sequence[Cliente]:
         return self.db.execute(select(Cliente)).scalars().all()
 
-    def desativar_cliente_por_cliente (self,
-                          id: int | None = None) -> Cliente | None:
+    def desativar_cliente_por_cliente(self,
+                                      id: int | None = None) -> Cliente | None:
 
         if id:
-            cliente = cast(Cliente | None, self.db.get(Cliente, id, with_for_update=True))
+            cliente = cast (Cliente | None, self.db.get(Cliente, id, with_for_update=True))
 
             if cliente is None:
                 return None
@@ -131,11 +132,11 @@ class ClienteRepository:
             cliente.ativo = False
             return cliente
 
-
     def desativar_cliente_por_funcionario(self,
-                          id: int | None = None,
-                          email: str | None = None,
-                          telefone: str | None = None) -> Cliente | None:
+                                          id: int | None = None,
+                                          nome: str | None = None,
+                                          email: str | None = None,
+                                          telefone: str | None = None) -> Cliente | None:
 
         condicionais = {campo: dado for campo, dado in locals().items() if dado is not None and campo != "self"}
 
@@ -143,7 +144,7 @@ class ClienteRepository:
             return None
 
         if id:
-            cliente = cast (Cliente | None, self.db.get(Cliente, id, with_for_update=True))
+            cliente = cast(Cliente | None, self.db.get(Cliente, id, with_for_update=True))
 
             if cliente is None:
                 return None

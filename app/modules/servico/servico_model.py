@@ -3,9 +3,7 @@ from datetime import datetime
 from sqlalchemy import BIGINT, Boolean, String, Float, func, Text
 from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, DeclarativeBase
 
-
-class Base(MappedAsDataclass, DeclarativeBase):
-    pass
+from app.core.base import Base
 
 
 class Servico(Base):

@@ -20,7 +20,8 @@ ALGORITHM : str = getenv("ALGORITHM")
 password_hash : PasswordHash = PasswordHash.recommended()
 
 #aqui está contido o token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
 
 
 def generate_password_hash(password: str) -> str | None:
@@ -37,7 +38,7 @@ def create_acess_token (data: dict) -> str:
     expire = datetime.now(tz=ZoneInfo('UTC')) + timedelta(hours=3)
 
     to_encode.update ({'exp': expire})
-    encoded_jwt : str = encode (payload=to_encode, key=SECRET_KEY, algorithms=[ALGORITHM])
+    encoded_jwt : str = encode (payload=to_encode, key=SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -45,9 +46,9 @@ def create_acess_token (data: dict) -> str:
 #DECODIFICADOR DE TOKENS -> ESSE NEGÓCIO É MUITO MASSA, GOSTEI
 def decode_token(token) -> FuncionarioResponse | ClienteResponse | None:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
-        if payload.get("is_colaborador"):
+        if "is_colaborador" in payload:
             return FuncionarioResponse(
                 nome=payload.get("nome"),
                 email=payload.get("email"),
@@ -60,7 +61,6 @@ def decode_token(token) -> FuncionarioResponse | ClienteResponse | None:
                 is_colaborador=payload.get("is_colaborador"),
 
                 access_funcionario=payload.get("access_funcionario"),
-                access_perfil=payload.get("access_perfil"),
                 access_cliente=payload.get("access_cliente"),
                 access_servico=payload.get("access_servico"),
                 access_item_servico=payload.get("access_item_servico"),

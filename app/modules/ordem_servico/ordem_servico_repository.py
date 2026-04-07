@@ -4,7 +4,6 @@ from typing import Sequence, cast
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
 
-from app.modules.cliente.cliente_model import Cliente
 from app.modules.ordem_servico.ordem_servico_model import OrdemServico
 
 
@@ -34,6 +33,7 @@ class OrdemServicoRepository:
         return ordem
 
     def buscar_um(self,
+                  id: int | None = None,
                   cliente_id: int | None = None,
                   status: str | None = None,
                   ativo: bool | None = None,
@@ -66,6 +66,7 @@ class OrdemServicoRepository:
         return self.db.execute(consulta).scalar_one_or_none()
 
     def buscar_varios(self,
+                      id: int | None = None,
                       cliente_id: int | None = None,
                       status: str | None = None,
                       ativo: bool | None = None,
@@ -119,3 +120,7 @@ class OrdemServicoRepository:
 
         ordem.ativo = False
         return ordem
+
+    def exists_cliente(self, cliente_id: int) -> bool:
+        consulta = select(exists().where(OrdemServico.cliente_id == cliente_id))
+        return self.db.execute(consulta).scalar()

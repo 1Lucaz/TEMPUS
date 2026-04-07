@@ -3,8 +3,8 @@ from datetime import datetime
 from sqlalchemy import String, BIGINT, Boolean, func
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, MappedAsDataclass
 
-class Base (MappedAsDataclass, DeclarativeBase):
-    pass
+from app.core.base import Base
+
 
 class Funcionario(Base):
     __tablename__ = 'funcionario'

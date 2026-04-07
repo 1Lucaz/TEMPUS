@@ -9,7 +9,6 @@ class FuncionarioCreate(BaseModel):
     is_admin: bool
     is_colaborador: bool
 
-    access_perfil: bool
     access_cliente: bool
     access_funcionario: bool
     access_servico: bool
@@ -27,7 +26,6 @@ class FuncionarioUpdate(BaseModel):
     is_admin: bool | None = None
     is_colaborador: bool | None = None
 
-    access_perfil: bool | None = None
     access_cliente: bool | None = None
     access_funcionario: bool | None = None
     access_servico: bool | None = None
@@ -44,7 +42,7 @@ class FuncionarioResponse(BaseModel):
     ativo: bool
     is_colaborador: bool
     is_admin: bool
-    access_perfil: bool
+
     access_cliente: bool
     access_funcionario: bool
     access_servico: bool
@@ -52,3 +50,22 @@ class FuncionarioResponse(BaseModel):
     access_ordem_servico: bool
 
     model_config = {"from_attributes": True}
+
+class FuncionarioInput (BaseModel):
+        id: int | None = None
+        nome: str | None = None
+        email: EmailStr | None = None
+
+        cargo: str | None = None
+        ativo: bool | None = None
+
+        is_admin: bool | None = None
+        is_colaborador: bool | None = None
+
+        access_cliente: bool | None = None
+        access_funcionario: bool | None = None
+        access_servico: bool | None = None
+        access_item_servico: bool | None = None
+        access_ordem_servico: bool | None = None
+
+        model_config = {"from_attributes": True}

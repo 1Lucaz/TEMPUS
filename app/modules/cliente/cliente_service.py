@@ -3,7 +3,7 @@ from sqlalchemy import Sequence
 from app.core.security import password_hash, generate_password_hash
 from app.modules.cliente.cliente_model import Cliente
 from app.modules.cliente.cliente_repository import ClienteRepository
-from app.modules.cliente.cliente_schema import ClienteCreate, ClienteResponse, ClienteUpdate
+from app.modules.cliente.cliente_schema import ClienteCreate, ClienteResponse, ClienteUpdate, ClienteInput
 from app.modules.funcionario.funcionario_schema import FuncionarioResponse
 from app.modules.utils.app_exception import Conflict, BadRequest, NotFound, Unauthorized
 
@@ -13,130 +13,136 @@ class ClienteService:
     def __init__(self, repository: ClienteRepository):
         self.repository = repository
 
-    def buscar_varios_cliente(self,
-                              dados: ClienteResponse,
-                              usuario_atual: FuncionarioResponse | ClienteResponse) -> list[Cliente]:
+    def buscar_varios_cliente(self, dados: ClienteInput, usuario_atual):
 
-        if isinstance(usuario_atual, ClienteResponse):
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        if not isinstance(usuario_atual, FuncionarioResponse) or not usuario_atual.access_cliente:
+            raise Unauthorized(causa="Você não está autorizado")
 
-        elif isinstance(usuario_atual, FuncionarioResponse) and not usuario_atual.access_cliente:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        condicoes = dados.model_dump(exclude_none=True)
 
-        else:
-            condicoes_pesquisa: dict = {campo: dado for campo, dado in dados.items() if dado is not None}
-            return self.repository.buscar_varios(**condicoes_pesquisa)
+        if not condicoes:
+            raise BadRequest(causa="Nenhum critério de busca informado")
 
-    def buscar_um_cliente(self,
-                          dados: ClienteResponse,
-                          usuario_atual: FuncionarioResponse | ClienteResponse) -> Cliente:
+        return self.repository.buscar_varios(**condicoes)
 
-        if isinstance(usuario_atual, ClienteResponse):
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        elif isinstance(usuario_atual, FuncionarioResponse) and not usuario_atual.access_cliente:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+    def buscar_um_cliente(self, dados: ClienteInput, usuario_atual):
 
-        condicoes_pesquisa: dict = {campo: dado for campo, dado in dados.items() if dado is not None}
-        return self.repository.buscar_um(**condicoes_pesquisa)
+        if not isinstance(usuario_atual, FuncionarioResponse) or not usuario_atual.access_cliente:
+            raise Unauthorized(causa="Você não está autorizado")
 
-    def buscar_todos_cliente(self,
-                             usuario_atual: FuncionarioResponse | ClienteResponse) -> Sequence[Cliente]:
+        condicoes = dados.model_dump(exclude_none=True)
 
-        if isinstance(usuario_atual, ClienteResponse):
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        if not condicoes:
+            raise BadRequest(causa="Nenhum critério de busca informado")
 
-        elif isinstance(usuario_atual, FuncionarioResponse) and not usuario_atual.access_cliente:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        resultado = self.repository.buscar_um(**condicoes)
+
+        if resultado is None:
+            raise NotFound(causa="Cliente não encontrado")
+
+        return resultado
+
+
+    def buscar_todos_cliente(self, usuario_atual):
+
+        if not isinstance(usuario_atual, FuncionarioResponse) or not usuario_atual.access_cliente:
+            raise Unauthorized(causa="Você não está autorizado")
 
         return self.repository.buscar_todos()
 
-    def criar_cliente_funcionario(self,
-                                  cliente: ClienteCreate,
-                                  usuario_atual: FuncionarioResponse | ClienteResponse) -> Cliente | None:
 
-        if isinstance(usuario_atual, ClienteResponse) or isinstance(usuario_atual,
-                                                                    FuncionarioResponse) and not usuario_atual.access_cliente:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+    def criar_cliente_funcionario(self, cliente: ClienteCreate, usuario_atual):
 
-        if self.repository.exists_email(email=str(cliente.email)) or self.repository.exists_telefone(
-                telefone=cliente.telefone):
+        if not isinstance(usuario_atual, FuncionarioResponse) or not usuario_atual.access_cliente:
+            raise Unauthorized(causa="Você não está autorizado")
+
+        if self.repository.exists_email(cliente.email) or self.repository.exists_telefone(cliente.telefone):
             raise Conflict(causa="Email ou telefone já em uso")
-
-        senha_hash = generate_password_hash(cliente.password)
 
         cliente_novo = Cliente(
             nome=cliente.nome,
             email=str(cliente.email),
             telefone=cliente.telefone,
-            senha=senha_hash
+            senha=generate_password_hash(cliente.senha)
         )
 
         self.repository.registrar_cliente(cliente_novo)
         return cliente_novo
 
-    def criar_cliente_publico(self, cliente: ClienteCreate) -> Cliente:
 
-        if self.repository.exists_email(email=str(cliente.email)) or self.repository.exists_telefone(
-                telefone=cliente.telefone):
+    def criar_cliente_publico(self, cliente: ClienteCreate):
+
+        if self.repository.exists_email(cliente.email) or self.repository.exists_telefone(cliente.telefone):
             raise Conflict(causa="Email ou telefone já em uso")
-
-        senha_hash = generate_password_hash(cliente.password)
 
         cliente_novo = Cliente(
             nome=cliente.nome,
             email=str(cliente.email),
             telefone=cliente.telefone,
-            senha=senha_hash
+            senha=generate_password_hash(cliente.senha)
         )
 
         self.repository.registrar_cliente(cliente_novo)
         return cliente_novo
 
-    def desativar_cliente_por_cliente (self,
-                                      usuario_atual: ClienteResponse | FuncionarioResponse) -> Cliente | None:
 
-        if isinstance(usuario_atual, ClienteResponse):
-            return self.repository.desativar_cliente_por_cliente(usuario_atual.id)
+    def desativar_cliente_por_cliente(self, usuario_atual):
 
-        else:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        if not isinstance(usuario_atual, ClienteResponse):
+            raise Unauthorized(causa="Você não está autorizado")
 
-    def desativar_cliente_por_funcionario (self,
-                                          dados_buscar: ClienteResponse | None,
-                                          usuario_atual: ClienteResponse | FuncionarioResponse) -> Cliente | None:
+        return self.repository.desativar_cliente_por_cliente(usuario_atual.id)
 
-        if isinstance(usuario_atual, FuncionarioResponse):
-            if usuario_atual.access_cliente:
-                return self.repository.atualizar_cliente_por_funcionario(dados_buscar=dados_buscar,
-                                                                         dados_novos=dados_novos.model_dump())
-            else:
-                raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+    def desativar_cliente_por_funcionario(self, dados_buscar, usuario_atual):
 
-        else:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        if not isinstance(usuario_atual, FuncionarioResponse) or not usuario_atual.access_cliente:
+            raise Unauthorized(causa="Você não está autorizado")
+
+        condicoes = dados_buscar.model_dump(exclude_none=True, exclude={"ativo"})
+
+        if not condicoes:
+            raise BadRequest(causa="Nenhum critério informado")
+
+        cliente = self.repository.desativar_cliente_por_funcionario(**condicoes)
+
+        if cliente is None:
+            raise NotFound(causa="Cliente não encontrado")
+
+        return cliente
 
 
-    def atualizar_cliente_por_cliente(self,
-                          dados_novos: ClienteUpdate,
-                          usuario_atual: ClienteResponse | FuncionarioResponse) -> Cliente | None:
+    def atualizar_cliente_por_cliente(self, dados_novos: ClienteUpdate, usuario_atual):
 
-        if isinstance(usuario_atual, ClienteResponse):
-            return self.repository.atualizar_cliente_por_cliente (usuario_atual.id, dados_novos.model_dump())
+        if not isinstance(usuario_atual, ClienteResponse):
+            raise Unauthorized(causa="Você não está autorizado")
 
-        else:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        dados = dados_novos.model_dump(exclude_none=True)
+
+        if not dados:
+            raise BadRequest(causa="Nenhum dado para atualização")
+
+        return self.repository.atualizar_cliente_por_cliente(usuario_atual.id, dados)
+
 
     def atualizar_cliente_por_funcionario(self,
-                                      dados_novos: ClienteUpdate,
-                                      dados_buscar: ClienteResponse | None,
-                                      usuario_atual: ClienteResponse | FuncionarioResponse) -> Cliente | None:
+                                          dados_novos: ClienteUpdate,
+                                          dados_buscar: ClienteInput,
+                                          usuario_atual):
 
-        if isinstance(usuario_atual, FuncionarioResponse):
-            if usuario_atual.access_cliente:
-                return self.repository.atualizar_cliente_por_funcionario (dados_buscar=dados_buscar, dados_novos=dados_novos.model_dump())
-            else:
-                raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        if not isinstance(usuario_atual, FuncionarioResponse) or not usuario_atual.access_cliente:
+            raise Unauthorized(causa="Você não está autorizado")
 
-        else:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        dados_novos = dados_novos.model_dump(exclude_none=True)
+        dados_filtro = dados_buscar.model_dump(exclude_none=True)
+
+        if not dados_novos:
+            raise BadRequest(causa="Nenhum dado para atualização")
+
+        if not dados_filtro:
+            raise BadRequest(causa="Nenhum critério de busca informado")
+
+        return self.repository.atualizar_cliente_por_funcionario(
+            dados_novos=dados_novos,
+            dados_buscar=dados_filtro
+        )

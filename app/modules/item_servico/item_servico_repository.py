@@ -13,6 +13,7 @@ class ItemServicoRepository:
 
     def registrar_item(self, item: ItemServico) -> ItemServico:
         self.db.add(item)
+        self.db.flush()
         return item
 
     def atualizar_item(self, id: int, dados_novos: dict) -> ItemServico | None:
@@ -32,8 +33,10 @@ class ItemServicoRepository:
         return item
 
     def buscar_um(self,
+                  id: int | None = None,
                   ordem_servico_id: int | None = None,
                   servico_id: int | None = None,
+                  valor: float | None = None,
                   ativo: bool | None = None) -> ItemServico | None:
 
         condicionais = {campo: dado for campo, dado in locals().items()
@@ -55,8 +58,10 @@ class ItemServicoRepository:
         return self.db.execute(consulta).scalar_one_or_none()
 
     def buscar_varios(self,
+                      id: int | None = None,
                       ordem_servico_id: int | None = None,
                       servico_id: int | None = None,
+                      valor: float | None = None,
                       ativo: bool | None = None) -> Sequence[ItemServico] | None:
 
         condicionais = {campo: dado for campo, dado in locals().items()

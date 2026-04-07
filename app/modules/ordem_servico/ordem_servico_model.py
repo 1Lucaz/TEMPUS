@@ -1,11 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import BIGINT, Boolean, ForeignKey, DateTime, String, func
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, MappedAsDataclass
+from sqlalchemy import BIGINT, Boolean, ForeignKey, String, func, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
 
-
-class Base(MappedAsDataclass, DeclarativeBase):
-    pass
+from app.core.base import Base
 
 
 class OrdemServico(Base):

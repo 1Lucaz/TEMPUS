@@ -9,6 +9,7 @@ class AuthService:
     def __init__(self,
                  cliente_repository: ClienteRepository,
                  funcionario_repository: FuncionarioRepository):
+
         self.cliente_repository = cliente_repository
         self.funcionario_repository = funcionario_repository
 
@@ -33,7 +34,7 @@ class AuthService:
             "ativo": cliente.ativo,
         })
 
-        return {"access_token": token, "token_type": "bearer"}
+        return {"access_token": token}
 
     def login_funcionario(self, email: str, senha: str) -> dict:
 
@@ -63,4 +64,4 @@ class AuthService:
             "access_ordem_servico": funcionario.access_ordem_servico,
         })
 
-        return {"access_token": token, "token_type": "bearer"}
+        return {"access_token": token}

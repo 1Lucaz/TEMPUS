@@ -1,5 +1,4 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel
 
 class ItemBase(BaseModel):
     id: int
@@ -8,14 +7,32 @@ class ItemBase(BaseModel):
     valor: float
     ativo: bool
 
+    model_config = {"from_attributes": True}
+
+
 class ItemCreate(BaseModel):
     ordem_servico_id: int
     servico_id: int
     valor: float
     ativo: bool = True
 
+    model_config = {"from_attributes": True}
+
+
 class ItemUpdate(BaseModel):
-    ordem_servico_id: Optional[int] = Field(default=None)
-    servico_id: Optional[int] = Field(default=None)
-    valor: Optional[float] = Field(default=None)
-    ativo: Optional[bool] = Field(default=None)
+    ordem_servico_id: int | None = None
+    servico_id: int | None = None
+    valor: float | None = None
+    ativo: bool | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ItemInput(BaseModel):
+    id: int | None = None
+    ordem_servico_id: int | None = None
+    servico_id: int | None = None
+    valor: float | None = None
+    ativo: bool | None = None
+
+    model_config = {"from_attributes": True}

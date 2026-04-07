@@ -1,12 +1,10 @@
-from datetime import date
-
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_ordem_servico_service
 from app.core.security import get_usuario_atual
 from app.modules.cliente.cliente_schema import ClienteResponse
 from app.modules.funcionario.funcionario_schema import FuncionarioResponse
-from app.modules.ordem_servico.ordem_servico_schema import OrdemCreate, OrdemUpdate, OrdemBase
+from app.modules.ordem_servico.ordem_servico_schema import OrdemCreate, OrdemUpdate, OrdemBase, OrdemInput
 from app.modules.ordem_servico.ordem_servico_service import OrdemServicoService
 from app.modules.utils.app_exception import *
 
@@ -24,7 +22,7 @@ def buscar_todos_ordens(service: OrdemServicoService = Depends(get_ordem_servico
 @router.get("/buscar",
             response_model=list[OrdemBase],
             status_code=status.HTTP_200_OK)
-def buscar_varios_ordens(dados_buscar: OrdemBase,
+def buscar_varios_ordens(dados_buscar: OrdemInput,
                          service: OrdemServicoService = Depends(get_ordem_servico_service),
                          usuario_atual: FuncionarioResponse | ClienteResponse = Depends(get_usuario_atual)):
     return service.buscar_varios(dados_buscar, usuario_atual)

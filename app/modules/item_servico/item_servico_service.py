@@ -3,8 +3,8 @@ from typing import Sequence
 from app.modules.funcionario.funcionario_schema import FuncionarioResponse
 from app.modules.item_servico.item_servico_model import ItemServico
 from app.modules.item_servico.item_servico_repository import ItemServicoRepository
-from app.modules.item_servico.item_servico_schema import ItemCreate, ItemUpdate, ItemBase
-from app.modules.utils.app_exception import Unauthorized, NotFound, BadRequest, Conflict
+from app.modules.item_servico.item_servico_schema import ItemCreate, ItemUpdate, ItemBase, ItemInput
+from app.modules.utils.app_exception import Unauthorized, NotFound, BadRequest
 
 
 class ItemServicoService:
@@ -13,7 +13,7 @@ class ItemServicoService:
         self.repository = repository
 
     def buscar_varios(self,
-                      dados: ItemBase,
+                      dados: ItemInput,
                       usuario_atual: FuncionarioResponse) -> Sequence[ItemServico] | None:
 
         if not usuario_atual.access_item_servico:
