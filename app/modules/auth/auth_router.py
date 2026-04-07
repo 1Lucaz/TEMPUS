@@ -8,15 +8,11 @@ from app.modules.utils.app_exception import *
 router = APIRouter(tags=["Autenticação"])
 
 
-@router.post("/login/cliente",
+@router.post("/login",
              status_code=status.HTTP_200_OK)
-def login_cliente(form: OAuth2PasswordRequestForm = Depends(),
+def login(is_colaborador: bool,
+                  form: OAuth2PasswordRequestForm = Depends(),
                   service: AuthService = Depends(get_auth_service)):
-    return service.login_cliente(email=form.username, senha=form.password)
-
-
-@router.post("/login/funcionario",
-             status_code=status.HTTP_200_OK)
-def login_funcionario(form: OAuth2PasswordRequestForm = Depends(),
-                      service: AuthService = Depends(get_auth_service)):
-    return service.login_funcionario(email=form.username, senha=form.password)
+    return service.login (is_colaborador = is_colaborador,
+                                 email=form.username,
+                                 senha=form.password)

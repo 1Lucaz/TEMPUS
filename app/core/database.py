@@ -12,19 +12,10 @@ load_dotenv()
 engine = create_engine (os.getenv('DATABASE_URL'), pool_pre_ping=True, pool_recycle=3600)
 SessionLocal = sessionmaker (autocommit=False, autoflush=False, bind=engine)
 
-def init_db():
-    inspector = inspect(engine)
+'''def init_db():
     Base.metadata.drop_all(engine)
-    tabelas_existentes = set(inspector.get_table_names())
-    tabelas_models = set(Base.metadata.tables.keys())
-
-    tabelas_restantes = tabelas_models - tabelas_existentes
-
-    if tabelas_restantes:
-        Base.metadata.drop_all(engine)
-        Base.metadata.create_all(bind=engine)
-    else:
-        print("[DB] Banco de dados OK.")
+    Base.metadata.create_all(bind=engine)
+    print("BANCO DE DADOS CRIADO")'''
 
 class Database:
     def __enter__ (self):

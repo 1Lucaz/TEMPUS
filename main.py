@@ -6,17 +6,9 @@ from app.modules.funcionario.funcionario_model import Funcionario
 from app.modules.funcionario.funcionario_repository import FuncionarioRepository
 from app.routers.api_router import api_router
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-
-from app.core.database import init_db, get_db
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    yield
-
-app = FastAPI(title="TEMPUS - V 1.0.1", lifespan=lifespan)
+app = FastAPI(title="TEMPUS - V 1.0.1")
 app.include_router(api_router)
 
 
@@ -33,7 +25,7 @@ def root():
     return {"HI": "Hello World"}
 
 
-funcionario_master: Funcionario = Funcionario(nome="",
+funcionario_master: Funcionario = Funcionario(nome="MasterClass",
                                               email="master@gmail.com",
                                               senha=generate_password_hash("123"),
                                               is_admin=True, access_funcionario=True,

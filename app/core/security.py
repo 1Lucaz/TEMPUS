@@ -1,17 +1,18 @@
 import jwt
+from jwt import encode, decode, ExpiredSignatureError, InvalidTokenError
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from copy import deepcopy
-from jwt import encode, ExpiredSignatureError, InvalidTokenError
 from os import getenv
 
 from typing import Annotated
 
 from app.modules.cliente.cliente_schema import ClienteResponse
 from app.modules.funcionario.funcionario_schema import FuncionarioResponse
+from app.modules.utils.app_exception import Unauthorized
 
 SECRET_KEY : str = getenv("SECRET_KEY")
 ALGORITHM : str = getenv("ALGORITHM")
@@ -48,14 +49,17 @@ def decode_token(token) -> FuncionarioResponse | ClienteResponse | None:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
-        if "is_colaborador" in payload:
+        if not payload or "id" not in payload:
+            raise InvalidTokenError()
+
+        if payload.get("is_colaborador") is True:
             return FuncionarioResponse(
+                id=payload.get("id"),
+
                 nome=payload.get("nome"),
                 email=payload.get("email"),
                 ativo=payload.get("ativo"),
                 cargo=payload.get("cargo"),
-
-                id=payload.get("id"),
 
                 is_admin=payload.get("is_admin"),
                 is_colaborador=payload.get("is_colaborador"),
@@ -64,28 +68,33 @@ def decode_token(token) -> FuncionarioResponse | ClienteResponse | None:
                 access_cliente=payload.get("access_cliente"),
                 access_servico=payload.get("access_servico"),
                 access_item_servico=payload.get("access_item_servico"),
-                access_ordem_servico=payload.get("access_ordem_servico")
-
+                access_ordem_servico=payload.get("access_ordem_servico"),
             )
 
-        elif "is_colaborador" not in payload:
+        if payload.get("email"):
             return ClienteResponse(
+                id=payload.get("id"),
                 nome=payload.get("nome"),
                 telefone=payload.get("telefone"),
                 email=payload.get("email"),
-                ativo=payload.get("ativo"),
-                id=payload.get("id")
+                ativo=payload.get("ativo")
             )
 
-        else:
-            raise InvalidTokenError()
-
-    except jwt.ExpiredSignatureError:
-        raise ExpiredSignatureError()
-
-    except jwt.InvalidTokenError:
         raise InvalidTokenError()
+
+    except ExpiredSignatureError:
+        raise Unauthorized(causa="Token expirado")
+
+    except InvalidTokenError:
+        raise Unauthorized(causa="Token inválido")
 
 
 def get_usuario_atual (token: Annotated[str, Depends(oauth2_scheme)]):
-    return decode_token(token=token)
+    try:
+        if not token:
+            raise Unauthorized(causa="Token ausente")
+
+        return decode_token(token)
+
+    except Exception:
+        raise Unauthorized(causa="Falha na autenticação")
