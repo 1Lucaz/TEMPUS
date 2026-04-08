@@ -5,6 +5,7 @@ class ClienteCreate(BaseModel):
     email: EmailStr
     telefone: str | None = None
     senha: str
+    ativo: bool = True
 
     model_config = {"from_attributes": True}
 
@@ -23,10 +24,12 @@ class ClienteResponse(BaseModel):
     email: str
     telefone: str
     ativo: bool
+    updated_by: str | None = None
 
     model_config = {"from_attributes": True}
 
-class ClienteInput(BaseModel):
+class ClienteRequest(BaseModel):
+    id: int | None = None
     nome: str | None = None
     email: str | None = None
     telefone: str | None = None
