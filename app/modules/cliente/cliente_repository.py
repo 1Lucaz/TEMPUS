@@ -15,12 +15,11 @@ class ClienteRepository:
         self.db.flush()
         return cliente
 
-    def atualizar_cliente_por_cliente(self,
-                                      id: int | None,
-                                      dados_novos: dict) -> Cliente | None:
-
-        if not dados_novos:
-            return None
+    def atualizar_cliente(self,
+                          id: int,
+                          dados_novos: dict,
+                          nome_autor: str | None,
+                          email_autor: str | None) -> Cliente | None:
 
         cliente_antigo = cast(Cliente | None, self.db.get(Cliente, id))
 
@@ -31,30 +30,12 @@ class ClienteRepository:
             if hasattr(cliente_antigo, campo):
                 setattr(cliente_antigo, campo, valor)
 
-        return cliente_antigo
-
-    def atualizar_cliente_por_funcionario(self,
-                                          dados_novos: dict,
-                                          dados_buscar: dict | None) -> Cliente | None:
-
-        if not dados_novos or not dados_buscar:
-            return None
-
-        if dados_buscar.get("id"):
-            cliente_antigo = self.db.get(Cliente, dados_buscar.get("id"))
-        else:
-            cliente_antigo = self.buscar_um(**dados_buscar)
-
-        if cliente_antigo is None:
-            return None
-
-        for campo, valor in dados_novos.items():
-            if hasattr(cliente_antigo, campo):
-                setattr(cliente_antigo, campo, valor)
+        cliente_antigo.updated_by = f"atualizado por - NOME: {nome_autor} | EMAIL: {email_autor}"
 
         return cliente_antigo
 
     def buscar_um(self,
+                  id: int | None = None,
                   nome: str | None = None,
                   email: str | None = None,
                   telefone: str | None = None,
@@ -120,28 +101,10 @@ class ClienteRepository:
     def buscar_todos(self) -> Sequence[Cliente]:
         return self.db.execute(select(Cliente)).scalars().all()
 
-    def desativar_cliente_por_cliente(self,
-                                      id: int | None = None) -> Cliente | None:
-
-        if id:
-            cliente = cast (Cliente | None, self.db.get(Cliente, id, with_for_update=True))
-
-            if cliente is None:
-                return None
-
-            cliente.ativo = False
-            return cliente
-
-    def desativar_cliente_por_funcionario(self,
-                                          id: int | None = None,
-                                          nome: str | None = None,
-                                          email: str | None = None,
-                                          telefone: str | None = None) -> Cliente | None:
-
-        condicionais = {campo: dado for campo, dado in locals().items() if dado is not None and campo != "self"}
-
-        if not condicionais:
-            return None
+    def desativar_cliente(self,
+                          id: int | None = None,
+                          nome_autor: str | None = None,
+                          email_autor: str | None = None) -> Cliente | None:
 
         if id:
             cliente = cast(Cliente | None, self.db.get(Cliente, id, with_for_update=True))
@@ -150,20 +113,11 @@ class ClienteRepository:
                 return None
 
             cliente.ativo = False
+            cliente.updated_by = f"atualizado por - NOME: {nome_autor} | EMAIL: {email_autor}"
             return cliente
 
-
-        elif id is None:
-            cliente = self.buscar_um(email=email, telefone=telefone)
-
-            if cliente is None:
-                return None
-
-            cliente.ativo = False
-
-            return cliente
-
-        return None
+        else:
+            return None
 
     def buscar_por_id(self, id: int) -> Cliente | None:
 
