@@ -4,9 +4,8 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import MappedAsDataclass, DeclarativeBase, Mapped
 from sqlalchemy.testing.schema import mapped_column
 
+from app.core.base import Base
 
-class Base (MappedAsDataclass, DeclarativeBase):
-    pass
 
 class FuncionarioEspecialidade (Base):
 
