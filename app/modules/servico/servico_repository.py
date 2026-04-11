@@ -77,10 +77,6 @@ class ServicoRepository:
             elif campo == "ativo":
                 consulta = consulta.where(Servico.ativo.is_(dado))
 
-            else:
-                coluna = getattr(Servico, campo)
-                consulta = consulta.where(coluna == dado)
-
         return self.db.execute(consulta).scalars().all()
 
     def buscar_todos(self) -> Sequence[Servico]:
@@ -93,12 +89,18 @@ class ServicoRepository:
 
         return cast(Servico | None, self.db.get(Servico, id, with_for_update=True))
 
-    def desativar_servico(self, id: int) -> Servico | None:
+    def desativar_servico(self, id: int | None = None,
+                          descricao: str | None = None,
+                          ativo : bool | None = None) -> Servico | None:
 
-        if id is None:
+        if id is None or descricao is None or ativo is None:
             return None
 
-        servico = cast(Servico | None, self.db.get(Servico, id, with_for_update=True))
+        if id:
+            servico = cast(Servico | None, self.db.get(Servico, id, with_for_update=True))
+
+        else:
+            servico = cast (Servico | None, self.buscar_um(descricao, ativo))
 
         if servico is None:
             return None
