@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel
 
-class ServicoBase(BaseModel):
+class ServicoResponse(BaseModel):
     id: int
     descricao: str
     valor_base: float
@@ -13,6 +12,12 @@ class ServicoCreate(BaseModel):
     ativo: bool = True
 
 class ServicoUpdate(BaseModel):
-    descricao: Optional[str] = Field(default=None)
-    valor_base: Optional[float] = Field(default=None)
-    ativo : Optional [bool] =  Field(default=None)
+    descricao: str | None = None
+    valor_base: float | None = None
+    ativo : bool | None = None
+
+class ServicoInput(BaseModel):
+    id: int | None = None
+    descricao: str | None = None
+    valor_base: float | None = None
+    ativo: bool | None = None

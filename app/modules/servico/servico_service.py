@@ -3,7 +3,7 @@ from typing import Sequence
 from app.modules.funcionario.funcionario_schema import FuncionarioResponse
 from app.modules.servico.servico_model import Servico
 from app.modules.servico.servico_repository import ServicoRepository
-from app.modules.servico.servico_schema import ServicoCreate, ServicoUpdate, ServicoBase
+from app.modules.servico.servico_schema import ServicoCreate, ServicoUpdate, ServicoResponse, ServicoInput
 from app.modules.utils.app_exception import Unauthorized, NotFound, BadRequest, Conflict
 
 
@@ -13,7 +13,7 @@ class ServicoService:
         self.repository = repository
 
     def buscar_varios(self,
-                      dados: ServicoBase,
+                      dados: ServicoInput,
                       usuario_atual: FuncionarioResponse) -> Sequence[Servico] | None:
 
         if not usuario_atual.access_servico:
@@ -76,12 +76,14 @@ class ServicoService:
 
         return servico
 
-    def desativar_servico(self, id: int, usuario_atual: FuncionarioResponse) -> Servico | None:
+    def desativar_servico(self,
+                          dados_buscar: ServicoInput,
+                          usuario_atual: FuncionarioResponse) -> Servico | None:
 
         if not usuario_atual.access_servico:
             raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        servico = self.repository.desativar_servico(id=id)
+        servico = self.repository.desativar_servico()
 
         if servico is None:
             raise NotFound(causa="Serviço não encontrado")
