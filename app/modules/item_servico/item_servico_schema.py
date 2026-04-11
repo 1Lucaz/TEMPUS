@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-class ItemBase(BaseModel):
+class ItemResponse(BaseModel):
     id: int
     ordem_servico_id: int
     servico_id: int
@@ -11,6 +11,7 @@ class ItemBase(BaseModel):
 
 
 class ItemCreate(BaseModel):
+    id: int
     ordem_servico_id: int
     servico_id: int
     valor: float

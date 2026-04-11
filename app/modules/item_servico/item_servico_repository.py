@@ -1,13 +1,10 @@
 from typing import Sequence, cast
-
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
-
 from app.modules.item_servico.item_servico_model import ItemServico
-
+from app.modules.ordem_servico.ordem_servico_model import OrdemServico
 
 class ItemServicoRepository:
-
     def __init__(self, db: Session):
         self.db = db
 
@@ -16,99 +13,66 @@ class ItemServicoRepository:
         self.db.flush()
         return item
 
-    def atualizar_item(self, id: int, dados_novos: dict) -> ItemServico | None:
-
-        if not dados_novos:
-            return None
-
+    def atualizar_item(self,
+                       id: int,
+                       dados_novos: dict) -> ItemServico | None:
         item = cast(ItemServico | None, self.db.get(ItemServico, id))
-
-        if item is None:
+        if not item:
             return None
-
         for campo, valor in dados_novos.items():
             if hasattr(item, campo):
                 setattr(item, campo, valor)
-
         return item
 
-    def buscar_um(self,
-                  id: int | None = None,
-                  ordem_servico_id: int | None = None,
+    def buscar_um(self, id: int | None = None,
+                  ordem_id: int | None = None,
                   servico_id: int | None = None,
-                  valor: float | None = None,
-                  ativo: bool | None = None) -> ItemServico | None:
-
-        condicionais = {campo: dado for campo, dado in locals().items()
-                        if dado is not None and campo != "self"}
-
-        if not condicionais:
-            return None
-
-        consulta = select(ItemServico).with_for_update()
-
-        for campo, dado in condicionais.items():
-
-            if campo == "ativo":
-                consulta = consulta.where(ItemServico.ativo.is_(dado))
-            else:
-                coluna = getattr(ItemServico, campo)
-                consulta = consulta.where(coluna == dado)
-
+                  cliente_id: int | None = None) -> ItemServico | None:
+        consulta = select(ItemServico).join(OrdemServico, ItemServico.ordem_servico_id == OrdemServico.id)
+        if id:
+            consulta = consulta.where(ItemServico.id == id)
+        if ordem_id:
+            consulta = consulta.where(ItemServico.ordem_servico_id == ordem_id)
+        if servico_id:
+            consulta = consulta.where(ItemServico.servico_id == servico_id)
+        if cliente_id:
+            consulta = consulta.where(OrdemServico.cliente_id == cliente_id)
         return self.db.execute(consulta).scalar_one_or_none()
 
     def buscar_varios(self,
-                      id: int | None = None,
-                      ordem_servico_id: int | None = None,
+                      ordem_id: int | None = None,
                       servico_id: int | None = None,
-                      valor: float | None = None,
-                      ativo: bool | None = None) -> Sequence[ItemServico] | None:
-
-        condicionais = {campo: dado for campo, dado in locals().items()
-                        if dado is not None and campo != "self"}
-
-        if not condicionais:
-            return None
-
-        consulta = select(ItemServico).with_for_update()
-
-        for campo, dado in condicionais.items():
-
-            if campo == "ativo":
-                consulta = consulta.where(ItemServico.ativo.is_(dado))
-            else:
-                coluna = getattr(ItemServico, campo)
-                consulta = consulta.where(coluna == dado)
-
+                      cliente_id: int | None = None,
+                      ativo: bool | None = None) -> Sequence[ItemServico]:
+        consulta = select(ItemServico).join(OrdemServico, ItemServico.ordem_servico_id == OrdemServico.id)
+        if ordem_id:
+            consulta = consulta.where(ItemServico.ordem_servico_id == ordem_id)
+        if servico_id:
+            consulta = consulta.where(ItemServico.servico_id == servico_id)
+        if cliente_id:
+            consulta = consulta.where(OrdemServico.cliente_id == cliente_id)
+        if ativo is not None:
+            consulta = consulta.where(ItemServico.ativo == ativo)
         return self.db.execute(consulta).scalars().all()
 
     def buscar_todos(self) -> Sequence[ItemServico]:
         return self.db.execute(select(ItemServico)).scalars().all()
 
     def buscar_por_id(self, id: int) -> ItemServico | None:
-
-        if id is None:
-            return None
-
-        return cast(ItemServico | None, self.db.get(ItemServico, id, with_for_update=True))
+        return cast(ItemServico | None, self.db.get(ItemServico, id))
 
     def desativar_item(self, id: int) -> ItemServico | None:
-
-        if id is None:
+        item = self.buscar_por_id(id)
+        if item:
+            item.ativo = False
+        else:
             return None
-
-        item = cast(ItemServico | None, self.db.get(ItemServico, id, with_for_update=True))
-
-        if item is None:
-            return None
-
-        item.ativo = False
-        return item
 
     def exists_servico(self, servico_id: int) -> bool:
-        consulta = select(exists().where(ItemServico.servico_id == servico_id))
-        return self.db.execute(consulta).scalar()
+        return self.db.execute(select(exists().where(ItemServico.servico_id == servico_id))).scalar()
 
-    def exists_ordem_servico(self, ordem_servico_id: int) -> bool:
-        consulta = select(exists().where(ItemServico.ordem_servico_id == ordem_servico_id))
+    def exists_ordem_servico(self, ordem_servico_id: int, cliente_id: int | None = None) -> bool:
+        consulta = select(exists().where(OrdemServico.id == ordem_servico_id))
+        if cliente_id:
+            consulta = consulta.where(OrdemServico.cliente_id == cliente_id)
         return self.db.execute(consulta).scalar()
