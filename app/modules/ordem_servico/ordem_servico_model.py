@@ -34,6 +34,11 @@ class OrdemServico(Base):
         nullable=False
     )
 
+    prioridade: Mapped[str] = mapped_column(
+        String,
+        nullable=False
+    )
+
     ativo: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
