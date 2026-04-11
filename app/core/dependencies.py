@@ -46,8 +46,9 @@ def get_item_servico_service (repository: ItemServicoRepository = Depends(get_it
 def get_ordem_servico_repository (db: Session = Depends(get_db)) -> OrdemServicoRepository:
     return OrdemServicoRepository(db)
 
-def get_ordem_servico_service (repository: OrdemServicoRepository = Depends(get_ordem_servico_repository)) -> OrdemServicoService:
-    return OrdemServicoService(repository)
+def get_ordem_servico_service (ordem_repository: OrdemServicoRepository = Depends(get_ordem_servico_repository),
+                               cliente_repository: ClienteRepository = Depends(get_cliente_repository)) -> OrdemServicoService:
+    return OrdemServicoService(ordem_repository, cliente_repository)
 
 
 def get_servico_repository (db: Session = Depends(get_db)) -> ServicoRepository:
