@@ -7,6 +7,7 @@ from app.modules.ordem_servico.ordem_servico_model import OrdemServico
 from app.modules.ordem_servico.ordem_servico_repository import OrdemServicoRepository
 from app.modules.ordem_servico.ordem_servico_schema import OrdemCreate, OrdemUpdate, OrdemInput
 from app.modules.utils.app_exception import Unauthorized, NotFound, BadRequest
+from app.modules.utils.prioridade import Prioridade
 
 
 class OrdemServicoService:
@@ -96,6 +97,20 @@ class OrdemServicoService:
             raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
         ordem = self.repository.desativar_ordem(id=id)
+
+        if ordem is None:
+            raise NotFound(causa="Ordem de serviço não encontrada")
+
+        return ordem
+
+    def buscar_por_prioridade(self,
+                      prioridade: Prioridade,
+                      usuario_atual: FuncionarioResponse | ClienteResponse) -> Sequence [OrdemServico] | None:
+
+        if not usuario_atual.access_ordem_servico:
+            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+
+        ordem = self.repository.buscar_por_prioridade(prioridade)
 
         if ordem is None:
             raise NotFound(causa="Ordem de serviço não encontrada")

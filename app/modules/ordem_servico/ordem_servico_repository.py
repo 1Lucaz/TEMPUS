@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
 
 from app.modules.ordem_servico.ordem_servico_model import OrdemServico
+from app.modules.utils.prioridade import Prioridade
 
 
 class OrdemServicoRepository:
@@ -38,7 +39,8 @@ class OrdemServicoRepository:
                   status: str | None = None,
                   ativo: bool | None = None,
                   data_inicio: date | None = None,
-                  data_fim: date | None = None) -> OrdemServico | None:
+                  data_fim: date | None = None,
+                  prioridade: Prioridade | None = None) -> OrdemServico | None:
 
         condicionais = {campo: dado for campo, dado in locals().items()
                         if dado is not None and campo != "self"}
@@ -71,7 +73,8 @@ class OrdemServicoRepository:
                       status: str | None = None,
                       ativo: bool | None = None,
                       data_inicio: date | None = None,
-                      data_fim: date | None = None) -> Sequence[OrdemServico] | None:
+                      data_fim: date | None = None,
+                      prioridade: Prioridade | None = None) -> Sequence[OrdemServico] | None:
 
         condicionais = {campo: dado for campo, dado in locals().items()
                         if dado is not None and campo != "self"}
@@ -107,6 +110,13 @@ class OrdemServicoRepository:
             return None
 
         return cast(OrdemServico | None, self.db.get(OrdemServico, id, with_for_update=True))
+
+    def buscar_por_prioridade (self, prioridade: Prioridade | None) -> Sequence[OrdemServico] | None:
+        if id is None:
+            return None
+
+        return self.db.execute(select(OrdemServico).where
+                               (OrdemServico.prioridade == prioridade).with_for_update()).scalars().all()
 
     def desativar_ordem(self, id: int) -> OrdemServico | None:
 
