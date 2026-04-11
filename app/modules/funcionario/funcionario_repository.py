@@ -63,7 +63,6 @@ class FuncionarioRepository:
     def buscar_um(self,
                   nome: str | None = None,
                   email: str | None = None,
-                  telefone: str | None = None,
                   ativo: bool | None = None,
                   is_admin: bool | None = None) -> Funcionario | None:
 
@@ -95,7 +94,6 @@ class FuncionarioRepository:
     def buscar_varios(self,
                       nome: str | None = None,
                       email: str | None = None,
-                      telefone: str | None = None,
                       ativo: bool | None = None,
                       is_admin: bool | None = None) -> Sequence[Funcionario] | None:
 
@@ -151,8 +149,7 @@ class FuncionarioRepository:
 
     def desativar_funcionario_por_funcionario(self,
                                               id: int | None = None,
-                                              email: str | None = None,
-                                              telefone: str | None = None) -> Funcionario | None:
+                                              email: str | None = None) -> Funcionario | None:
 
         condicionais = {campo: dado for campo, dado in locals().items()
                         if dado is not None and campo != "self"}
@@ -163,7 +160,7 @@ class FuncionarioRepository:
         if id:
             funcionario = cast(Funcionario | None, self.db.get(Funcionario, id, with_for_update=True))
         else:
-            funcionario = self.buscar_um(email=email, telefone=telefone)
+            funcionario = self.buscar_um(email=email)
 
         if funcionario is None:
             return None
