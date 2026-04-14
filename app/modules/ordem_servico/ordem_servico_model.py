@@ -35,7 +35,7 @@ class OrdemServico(Base):
     )
 
     prioridade: Mapped[str] = mapped_column(
-        String,
+        String (30),
         nullable=False
     )
 
