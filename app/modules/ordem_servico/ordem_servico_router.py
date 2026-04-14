@@ -14,16 +14,17 @@ router = APIRouter(prefix="/ordens", tags=["Ordens de Serviço"])
 @router.get("/",
             response_model=list[OrdemResponse],
             status_code=status.HTTP_200_OK)
-def buscar_todos_ordens(service: OrdemServicoService = Depends(get_ordem_servico_service),
+def buscar_todos_ordem(service: OrdemServicoService = Depends(get_ordem_servico_service),
                         usuario_atual: FuncionarioResponse = Depends(get_usuario_atual)):
     return service.buscar_todos(usuario_atual)
 
-
+#CLIENTE E FUNCIONÁRIO ACESSAM, CLIENTE VÊ APENAS O QUE ESTÁ REGISTRADO AO ID DELE, ENQUANTO O FUNCIONÁRIO
+#VÊ O QUE ESTÁ LIGADO AOS SEUS DADOS DE BUSCA
 @router.get("/buscar",
             response_model=list[OrdemResponse],
             status_code=status.HTTP_200_OK)
-def buscar_varios_ordens(dados_buscar: OrdemInput,
-                         service: OrdemServicoService = Depends(get_ordem_servico_service),
+def buscar_varios_ordem(dados_buscar: OrdemInput,
+                         service: OrdemServicoService | ClienteResponse = Depends(get_ordem_servico_service),
                          usuario_atual: FuncionarioResponse = Depends(get_usuario_atual)):
     return service.buscar_varios(dados_buscar, usuario_atual)
 
