@@ -1,31 +1,29 @@
 import os
 import re
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
 from app.core.base import Base
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.ext.asyncio.engine import create_async_engine
 
 load_dotenv()
-engine = create_async_engine(re.sub
-                             (r'^postgresql:',
-                              'postgresql+psycopg:',
-                              os.getenv('DATABASE_URL')),
-                             echo=True)
+engine = create_engine(re.sub
+                       (r'^postgresql:',
+                        'postgresql+psycopg:',
+                        os.getenv('DATABASE_URL')),
+                       echo=True)
 
 
-async def get_session() -> AsyncSession | None:
-    async with AsyncSession(engine, expire_on_commit=False) as session:
-        yield session
-
-
-AsyncLocalSession = async_sessionmaker(bind=get_session(),
-                                       expire_on_commit=False,
-                                       autoflush=True)
+LocalSession = sessionmaker(bind=engine,
+                            expire_on_commit=False,
+                            autoflush=True)
 
 
 class Database:
     def __enter__(self):
-        self.session = AsyncLocalSession()
+        self.session = LocalSession()
         return self.session
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -46,7 +44,6 @@ class Database:
         finally:
             self.session.close()
 
-
-async def get_db():
+def get_db():
     with Database() as db:
         yield db
