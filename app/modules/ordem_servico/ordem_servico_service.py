@@ -20,11 +20,15 @@ class OrdemServicoService:
                       dados: OrdemInput,
                       usuario_atual: FuncionarioResponse | ClienteResponse) -> Sequence[OrdemServico] | None:
 
-        if not usuario_atual.access_ordem_servico:
-            raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
+        if not isinstance(usuario_atual, FuncionarioResponse) and usuario_atual.access_ordem_servico:
+            condicionais = dados.model_dump(exclude_none=True)
+            return self.repository.buscar_varios(**condicionais)
 
-        condicionais = dados.model_dump(exclude_none=True)
-        return self.repository.buscar_varios(**condicionais)
+        elif isinstance(usuario_atual, ClienteResponse):
+            return self.repository.buscar_varios(cliente_id=usuario_atual.id)
+
+        raise Unauthorized (causa="O que você tá fazendo por aqui? 🤔")
+
 
     def buscar_todos(self,
                      usuario_atual: FuncionarioResponse | ClienteResponse) -> Sequence[OrdemServico]:
@@ -50,19 +54,23 @@ class OrdemServicoService:
 
     def criar_ordem(self,
                     dados: OrdemCreate,
-                    usuario_atual: FuncionarioResponse | ClienteResponse) -> OrdemServico:
+                    usuario_atual: FuncionarioResponse) -> OrdemServico:
 
-        if not usuario_atual.access_ordem_servico:
+        if not isinstance(usuario_atual, FuncionarioResponse) or not usuario_atual.access_ordem_servico:
             raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
         if not self.cliente_repository.buscar_por_id(dados.cliente_id):
             raise NotFound(causa="Cliente não existe ou está inativo")
 
-        ordem_nova = OrdemServico(
-            cliente_id=dados.cliente_id,
-            data_abertura=dados.data_abertura,
-            status=dados.status.value,
-        )
+        dados_criar = dados.model_dump()
+
+        if "status" in dados:
+            dados["status"] = str(dados["status"])
+
+        if "prioridade" in dados:
+            dados["prioridade"] = str(dados["prioridade"])
+
+        ordem_nova = OrdemServico(**dados_criar)
 
         return self.repository.registrar_ordem(ordem_nova)
 
@@ -80,7 +88,10 @@ class OrdemServicoService:
             raise BadRequest(causa="Nenhum dado informado para atualização")
 
         if "status" in dados:
-            dados["status"] = dados["status"].value
+            dados["status"] = str(dados["status"])
+
+        if "prioridade" in dados:
+            dados["prioridade"] = str(dados["prioridade"])
 
         ordem = self.repository.atualizar_ordem(id=id, dados_novos=dados)
 
