@@ -1,4 +1,5 @@
 import jwt
+from dotenv import load_dotenv
 from jwt import encode, decode, ExpiredSignatureError, InvalidTokenError
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
@@ -14,16 +15,18 @@ from app.modules.cliente.cliente_schema import ClienteResponse
 from app.modules.funcionario.funcionario_schema import FuncionarioResponse
 from app.modules.utils.app_exception import Unauthorized
 
+load_dotenv()
+
 SECRET_KEY : str = getenv("SECRET_KEY")
 ALGORITHM : str = getenv("ALGORITHM")
+
+print (SECRET_KEY, ALGORITHM)
 
 #aqui está contido o salt da senha, que é gerado automaticamente pela própria lib - nois eh racki paeeehr
 password_hash : PasswordHash = PasswordHash.recommended()
 
 #aqui está contido o token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
-
-
 
 def generate_password_hash(password: str) -> str | None:
     return password_hash.hash(password)
