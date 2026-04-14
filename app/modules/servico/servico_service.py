@@ -83,9 +83,12 @@ class ServicoService:
         if not usuario_atual.access_servico:
             raise Unauthorized(causa="Você não está autorizado a realizar este serviço")
 
-        servico = self.repository.desativar_servico()
+        servico: Servico | None = self.repository.buscar_um(ativo=dados_buscar.ativo, descricao=dados_buscar.descricao)
 
         if servico is None:
             raise NotFound(causa="Serviço não encontrado")
 
-        return servico
+        else:
+            return self.repository.desativar_servico(id = servico.id,
+                                                     descricao = servico.descricao,
+                                                     ativo=servico.ativo)
