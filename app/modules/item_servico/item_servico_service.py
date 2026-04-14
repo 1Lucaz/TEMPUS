@@ -67,7 +67,7 @@ class ItemServicoService:
         return item
 
     def desativar_item(self, id: int, usuario: FuncionarioResponse) -> ItemServico:
-        if not usuario.access_item_servico:
+        if not usuario.access_item_servico or not isinstance(usuario, FuncionarioResponse):
             raise Unauthorized(causa="Permissão insuficiente")
         item = self.repository.buscar_um(id)
         if not item:
