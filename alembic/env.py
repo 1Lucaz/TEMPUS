@@ -1,3 +1,5 @@
+import os
+import re
 from logging.config import fileConfig
 
 from dotenv import load_dotenv
@@ -14,9 +16,7 @@ from app.modules.item_servico import item_servico_model
 from app.modules.ordem_servico import ordem_servico_model
 from app.modules.servico import servico_model
 
-
 from os import getenv
-
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -38,7 +38,10 @@ target_metadata = None
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 load_dotenv()
-db_url = getenv ("DATABASE_URL")
+db_url = re.sub(
+        r'^postgresql:',
+        'postgresql+psycopg:',
+        os.getenv('DATABASE_URL'))
 
 if not db_url:
     raise RuntimeError("Você tem que definir um banco de dados no .env")
@@ -47,6 +50,7 @@ config.set_main_option(
     "sqlalchemy.url",
     db_url
 )
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
