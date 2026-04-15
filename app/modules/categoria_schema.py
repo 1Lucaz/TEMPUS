@@ -1,16 +1,28 @@
 from pydantic import BaseModel
 
-class CategoriaServicoResponse(BaseModel):
+class CategoriaResponse(BaseModel):
     id: int
     descricao: str
     ativo: bool
+    created_at: datetime
+    updated_at: datetime | None
+    
     model_config = {"from_attributes": True}
 
 
-class CategoriaServicoCreate(BaseModel):
+class CategoriaCreate(BaseModel):
     id: int
-    descricao: str
-    ativo: bool = True
+    descricao: str  | None = None
+    ativo: bool = True 
+
+    model_config = {"from_attributes": True}
+    
+    
+   
+
+class CategoriaUpdate(BaseModel):
+    descricao: str | None = None
+    ativo: bool | None = None
 
     model_config = {"from_attributes": True}
     
