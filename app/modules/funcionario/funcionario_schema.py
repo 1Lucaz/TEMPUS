@@ -14,6 +14,7 @@ class FuncionarioCreate(BaseModel):
     access_servico: bool
     access_item_servico: bool
     access_ordem_servico: bool
+    access_categoria_servico: bool
 
 
     model_config = {"from_attributes": True}
@@ -31,6 +32,7 @@ class FuncionarioUpdate(BaseModel):
     access_servico: bool | None = None
     access_item_servico: bool | None = None
     access_ordem_servico: bool | None = None
+    access_categoria_servico: bool | None = None
 
     model_config = {"from_attributes": True}
 
@@ -48,6 +50,7 @@ class FuncionarioResponse(BaseModel):
     access_servico: bool
     access_item_servico: bool
     access_ordem_servico: bool
+    access_categoria_servico: bool | None = None
 
     model_config = {"from_attributes": True}
 
@@ -67,5 +70,6 @@ class FuncionarioInput (BaseModel):
         access_servico: bool | None = None
         access_item_servico: bool | None = None
         access_ordem_servico: bool | None = None
+        access_categoria_servico: bool | None = None
 
         model_config = {"from_attributes": True}
