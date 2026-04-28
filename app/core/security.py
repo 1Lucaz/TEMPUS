@@ -20,8 +20,6 @@ load_dotenv()
 SECRET_KEY : str = getenv("SECRET_KEY")
 ALGORITHM : str = getenv("ALGORITHM")
 
-print (SECRET_KEY, ALGORITHM)
-
 #aqui está contido o salt da senha, que é gerado automaticamente pela própria lib - nois eh racki paeeehr
 password_hash : PasswordHash = PasswordHash.recommended()
 
