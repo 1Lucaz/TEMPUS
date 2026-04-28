@@ -64,6 +64,7 @@ class FuncionarioService:
             access_servico=dados.access_servico,
             access_item_servico=dados.access_item_servico,
             access_ordem_servico=dados.access_ordem_servico,
+            access_categoria_servico=dados.access_categoria_servico
         )
 
         return self.repository.registrar_funcionario(funcionario_novo)
@@ -126,9 +127,8 @@ class FuncionarioService:
         dados = dados_buscar.model_dump(exclude_none=True)
 
         resultado = self.repository.desativar_funcionario_por_funcionario(
-            id=dados.get("id"),
-            email=dados.get("email"),
-            telefone=dados.get("telefone")
+            id=dados.id,
+            email=dados.email
         )
 
         if resultado is None:
