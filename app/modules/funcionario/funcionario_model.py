@@ -33,6 +33,9 @@ class Funcionario(Base):
     #acessar o ordem_serviço
     access_ordem_servico: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
+    #acessar o categoria_serviço
+    access_categoria_servico: Mapped [bool] = mapped_column(Boolean, nullable=False)
+
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="TRUE")
     is_colaborador: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="TRUE")
 
