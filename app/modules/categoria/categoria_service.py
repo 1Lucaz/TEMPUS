@@ -4,6 +4,8 @@ from app.modules.categoria.categoria_model import CategoriaServico
 from app.modules.categoria.categoria_repository import CategoriaRepository
 from app.modules.categoria.categoria_schema import (CategoriaCreate, CategoriaUpdate,CategoriaResponse
 )
+from app.modules.cliente.cliente_schema import ClienteResponse
+from app.modules.funcionario.funcionario_schema import FuncionarioResponse
 
 from app.modules.utils.app_exception import Unauthorized, NotFound, BadRequest
 
@@ -15,7 +17,7 @@ class CategoriaService:
 
     # 🔒 validação centralizada
     def _verificar_permissao(self, usuario_atual):
-        if not getattr(usuario_atual, "access_categoria", False):
+        if isinstance(usuario_atual, ClienteResponse) or not usuario_atual.access_categoria:
             raise Unauthorized(causa="Você não está autorizado a acessar categorias")
 
     def buscar_todos(self, usuario_atual) -> Sequence[CategoriaServico]:
@@ -25,7 +27,7 @@ class CategoriaService:
     def buscar_por_id(self, id: int, usuario_atual) -> CategoriaServico:
         self._verificar_permissao(usuario_atual)
 
-        categoria = self.repository.buscar_por_id(id)
+        categoria = self.repository.busca_por_id(id)
 
         if categoria is None:
             raise NotFound(causa="Categoria não encontrada")
@@ -57,7 +59,7 @@ class CategoriaService:
     def criar_categoria(
         self,
         dados: CategoriaCreate,
-        usuario_atual: CategoriaResponse
+        usuario_atual: ClienteResponse | FuncionarioResponse
     ) :
 
         self._verificar_permissao(usuario_atual)
