@@ -17,7 +17,7 @@ class ItemServicoService:
         if isinstance(usuario, FuncionarioResponse):
             if not usuario.access_item_servico:
                 raise Unauthorized(causa="Acesso negado aos itens de serviço")
-            return self.repository.buscar_varios(ordem_id=dados.ordem_servico_id, servico_id=dados.servico_id,
+            return self.repository.buscar_varios(servico_id=dados.servico_id,
                                                  ativo=dados.ativo)
 
         return self.repository.buscar_varios(cliente_id=usuario.id, ativo=True)
@@ -44,11 +44,9 @@ class ItemServicoService:
             raise Unauthorized(causa="SEM PERMISSÃO PLAYBOYYY")
         if not self.repository.exists_servico(dados.servico_id):
             raise NotFound(causa="Serviço inválido")
-        if not self.repository.exists_ordem_servico(dados.ordem_servico_id):
-            raise NotFound(causa="Ordem de serviço inválida")
 
         return self.repository.registrar_item(ItemServico(
-            ordem_servico_id=dados.ordem_servico_id,
+            categoria_id=dados.categoria_id,
             servico_id=dados.servico_id,
             valor=dados.valor
         ))
