@@ -2,8 +2,8 @@ from pydantic import BaseModel
 
 class ItemResponse(BaseModel):
     id: int
-    ordem_servico_id: int
     servico_id: int
+    categoria_id: int
     valor: float
     ativo: bool
 
@@ -12,8 +12,8 @@ class ItemResponse(BaseModel):
 
 class ItemCreate(BaseModel):
     id: int
-    ordem_servico_id: int
     servico_id: int
+    categoria_id: int
     valor: float
     ativo: bool = True
 
@@ -21,8 +21,8 @@ class ItemCreate(BaseModel):
 
 
 class ItemUpdate(BaseModel):
-    ordem_servico_id: int | None = None
     servico_id: int | None = None
+    categoria_id: int | None = None
     valor: float | None = None
     ativo: bool | None = None
 
@@ -31,8 +31,8 @@ class ItemUpdate(BaseModel):
 
 class ItemInput(BaseModel):
     id: int | None = None
-    ordem_servico_id: int | None = None
     servico_id: int | None = None
+    categoria_id: int | None = None
     valor: float | None = None
     ativo: bool | None = None
 

@@ -16,15 +16,15 @@ class ItemServico(Base):
         autoincrement=True
     )
 
-    ordem_servico_id: Mapped[int] = mapped_column(
-        BIGINT,
-        ForeignKey("ordem_servico.id"),
-        nullable=False
-    )
-
     servico_id: Mapped[int] = mapped_column(
         BIGINT,
         ForeignKey("servico.id"),
+        nullable=False
+    )
+
+    categoria_id: Mapped[int] = mapped_column(
+        BIGINT,
+        ForeignKey("categoria.id"),
         nullable=False
     )
 
