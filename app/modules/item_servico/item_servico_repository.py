@@ -25,14 +25,11 @@ class ItemServicoRepository:
         return item
 
     def buscar_um(self, id: int | None = None,
-                  ordem_id: int | None = None,
                   servico_id: int | None = None,
                   cliente_id: int | None = None) -> ItemServico | None:
-        consulta = select(ItemServico).join(OrdemServico, ItemServico.ordem_servico_id == OrdemServico.id)
+        consulta = select(ItemServico)
         if id:
             consulta = consulta.where(ItemServico.id == id)
-        if ordem_id:
-            consulta = consulta.where(ItemServico.ordem_servico_id == ordem_id)
         if servico_id:
             consulta = consulta.where(ItemServico.servico_id == servico_id)
         if cliente_id:
@@ -40,13 +37,10 @@ class ItemServicoRepository:
         return self.db.execute(consulta).scalar_one_or_none()
 
     def buscar_varios(self,
-                      ordem_id: int | None = None,
                       servico_id: int | None = None,
                       cliente_id: int | None = None,
                       ativo: bool | None = None) -> Sequence[ItemServico]:
-        consulta = select(ItemServico).join(OrdemServico, ItemServico.ordem_servico_id == OrdemServico.id)
-        if ordem_id:
-            consulta = consulta.where(ItemServico.ordem_servico_id == ordem_id)
+        consulta = select(ItemServico)
         if servico_id:
             consulta = consulta.where(ItemServico.servico_id == servico_id)
         if cliente_id:
@@ -70,9 +64,3 @@ class ItemServicoRepository:
 
     def exists_servico(self, servico_id: int) -> bool:
         return self.db.execute(select(exists().where(ItemServico.servico_id == servico_id))).scalar()
-
-    def exists_ordem_servico(self, ordem_servico_id: int, cliente_id: int | None = None) -> bool:
-        consulta = select(exists().where(OrdemServico.id == ordem_servico_id))
-        if cliente_id:
-            consulta = consulta.where(OrdemServico.cliente_id == cliente_id)
-        return self.db.execute(consulta).scalar()
