@@ -11,19 +11,19 @@ router = APIRouter(prefix="/itens", tags=["Itens de Serviço"])
 
 @router.get("/", response_model=list[ItemResponse])
 def buscar_todos_itens(service: ItemServicoService = Depends(get_item_servico_service),
-                       usuario: Union[FuncionarioResponse, ClienteResponse] = Depends(get_usuario_atual)):
+                       usuario: FuncionarioResponse | ClienteResponse = Depends(get_usuario_atual)):
     return service.buscar_todos(usuario)
 
 @router.post("/buscar", response_model=list[ItemResponse])
 def buscar_varios_itens(dados_buscar: ItemInput,
                         service: ItemServicoService = Depends(get_item_servico_service),
-                        usuario: Union[FuncionarioResponse, ClienteResponse] = Depends(get_usuario_atual)):
+                        usuario: FuncionarioResponse | ClienteResponse = Depends(get_usuario_atual)):
     return service.buscar_varios(dados_buscar, usuario)
 
 @router.get("/{id}", response_model=ItemResponse)
 def buscar_item_por_id(id: int,
                        service: ItemServicoService = Depends(get_item_servico_service),
-                       usuario: Union[FuncionarioResponse, ClienteResponse] = Depends(get_usuario_atual)):
+                       usuario: FuncionarioResponse | ClienteResponse = Depends(get_usuario_atual)):
     return service.buscar_por_id(id, usuario)
 
 @router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
