@@ -66,6 +66,7 @@ class AuthService:
                 "access_servico": funcionario.access_servico,
                 "access_item_servico": funcionario.access_item_servico,
                 "access_ordem_servico": funcionario.access_ordem_servico,
+                "access_categoria_servico": funcionario.access_categoria_servico
             })
 
             return {
