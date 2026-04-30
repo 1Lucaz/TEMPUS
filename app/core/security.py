@@ -70,6 +70,7 @@ def decode_token(token) -> FuncionarioResponse | ClienteResponse | None:
                 access_servico=payload.get("access_servico"),
                 access_item_servico=payload.get("access_item_servico"),
                 access_ordem_servico=payload.get("access_ordem_servico"),
+                access_categoria_servico= payload.get("access_categoria_servico")
             )
 
         if payload.get("email"):
