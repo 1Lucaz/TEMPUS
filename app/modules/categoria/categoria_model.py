@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from sqlalchemy import String,BIGINT, Boolean, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -23,7 +22,7 @@ class CategoriaServico(Base):
 	ativo: Mapped[bool] = mapped_column(
     	Boolean,
     	default=True,
-server_default="TRUE"
+        server_default="TRUE"
 	)
 
 	created_at: Mapped[datetime] = mapped_column( init=False,
