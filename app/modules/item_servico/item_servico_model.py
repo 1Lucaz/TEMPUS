@@ -24,7 +24,7 @@ class ItemServico(Base):
 
     categoria_id: Mapped[int] = mapped_column(
         BIGINT,
-        ForeignKey("categoria.id"),
+        ForeignKey("categoria_item_servico.id"),
         nullable=False
     )
 
