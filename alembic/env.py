@@ -7,7 +7,6 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-
 from app.core.base import Base
 
 from app.modules.cliente import cliente_model
@@ -15,6 +14,7 @@ from app.modules.funcionario import funcionario_model
 from app.modules.item_servico import item_servico_model
 from app.modules.ordem_servico import ordem_servico_model
 from app.modules.servico import servico_model
+from app.modules.categoria import categoria_model
 
 from os import getenv
 
