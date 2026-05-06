@@ -13,18 +13,21 @@ class CategoriaResponse(BaseModel):
 
 
 class CategoriaCreate(BaseModel):
-    id: int
     descricao: str  | None = None
     ativo: bool = True 
 
     model_config = {"from_attributes": True}
-    
-    
-   
 
 class CategoriaUpdate(BaseModel):
     descricao: str | None = None
     ativo: bool | None = None
+
+    model_config = {"from_attributes": True}
+
+class CategoriaInput(BaseModel):
+    id: int | None = None
+    descricao: str  | None = None
+    ativo: bool = True
 
     model_config = {"from_attributes": True}
     
