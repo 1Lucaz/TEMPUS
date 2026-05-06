@@ -4,8 +4,8 @@ from app.modules.categoria.categoria_schema import CategoriaCreate, CategoriaUpd
 
 class ItemResponse(BaseModel):
     id: int
-    servico_id: int
     categoria_id: int
+    descricao: str
     valor: float
     ativo: bool
     categoria_servico: CategoriaResponse | None = None
@@ -14,8 +14,8 @@ class ItemResponse(BaseModel):
 
 
 class ItemCreate(BaseModel):
-    servico_id: int
     categoria_id: int
+    descricao: str | None = None
     valor: float
     ativo: bool = True
     categoria_servico: CategoriaCreate | None = None
@@ -24,8 +24,8 @@ class ItemCreate(BaseModel):
 
 
 class ItemUpdate(BaseModel):
-    servico_id: int | None = None
     categoria_id: int | None = None
+    descricao: str | None = None
     valor: float | None = None
     ativo: bool | None = None
     categoria_servico: CategoriaUpdate | None = None
@@ -35,7 +35,7 @@ class ItemUpdate(BaseModel):
 
 class ItemInput(BaseModel):
     id: int | None = None
-    servico_id: int | None = None
+    descricao: str | None = None
     categoria_id: int | None = None
     valor: float | None = None
     ativo: bool | None = None
