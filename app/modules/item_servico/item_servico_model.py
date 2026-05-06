@@ -1,7 +1,6 @@
 from datetime import datetime
-
-from sqlalchemy import BIGINT, Boolean, ForeignKey, Float, func
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, MappedAsDataclass
+from sqlalchemy import BIGINT, Boolean, ForeignKey, Float, func, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.base import Base
 
@@ -16,16 +15,15 @@ class ItemServico(Base):
         autoincrement=True
     )
 
-    servico_id: Mapped[int] = mapped_column(
-        BIGINT,
-        ForeignKey("servico.id"),
-        nullable=False
-    )
-
     categoria_id: Mapped[int] = mapped_column(
         BIGINT,
         ForeignKey("categoria_item_servico.id"),
         nullable=False
+    )
+
+    descricao: Mapped [str] = mapped_column(
+        String (255),
+        nullable=False,
     )
 
     valor: Mapped[float] = mapped_column(
