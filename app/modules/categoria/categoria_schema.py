@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from pydantic import BaseModel
 
 class CategoriaResponse(BaseModel):
@@ -10,7 +9,6 @@ class CategoriaResponse(BaseModel):
     updated_at: datetime | None
     
     model_config = {"from_attributes": True}
-
 
 class CategoriaCreate(BaseModel):
     descricao: str  | None = None
