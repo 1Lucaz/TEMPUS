@@ -1,4 +1,4 @@
-from typing import Sequence, Union
+from typing import Sequence
 from app.modules.funcionario.funcionario_schema import FuncionarioResponse
 from app.modules.cliente.cliente_schema import ClienteResponse
 from app.modules.item_servico.item_servico_model import ItemServico
@@ -17,10 +17,12 @@ class ItemServicoService:
         if isinstance(usuario, FuncionarioResponse):
             if not usuario.access_item_servico:
                 raise Unauthorized(causa="Acesso negado aos itens de serviço")
-            return self.repository.buscar_varios(servico_id=dados.servico_id,
+
+            return self.repository.buscar_varios(categoria_id=dados.categoria_servico.id,
                                                  ativo=dados.ativo)
 
-        return self.repository.buscar_varios(cliente_id=usuario.id, ativo=True)
+        return self.repository.buscar_varios(categoria_id=dados.categoria_servico.id,
+                                             ativo=True)
 
     def buscar_todos(self, usuario: FuncionarioResponse | ClienteResponse) -> Sequence[ItemServico]:
         if isinstance(usuario, ClienteResponse) or not usuario.access_item_servico:
@@ -33,7 +35,7 @@ class ItemServicoService:
                 raise Unauthorized(causa="Acesso negado")
             item = self.repository.buscar_por_id(id)
         else:
-            item = self.repository.buscar_um(id=id, cliente_id=usuario.id)
+            item = self.repository.buscar_um(id=id)
 
         if not item:
             raise NotFound(causa="Item não encontrado ou acesso negado")
@@ -42,13 +44,13 @@ class ItemServicoService:
     def criar_item(self, dados: ItemCreate, usuario: FuncionarioResponse) -> ItemServico:
         if not usuario.access_item_servico:
             raise Unauthorized(causa="SEM PERMISSÃO PLAYBOYYY")
-        if not self.repository.exists_servico(dados.servico_id):
+        if not self.repository.exists_item(dados.id):
             raise NotFound(causa="Serviço inválido")
 
         return self.repository.registrar_item(ItemServico(
             categoria_id=dados.categoria_id,
-            servico_id=dados.servico_id,
-            valor=dados.valor
+            valor=dados.valor,
+            descricao=dados.descricao
         ))
 
     def atualizar_item(self, id: int, dados_novos: ItemUpdate, usuario: FuncionarioResponse) -> ItemServico:
