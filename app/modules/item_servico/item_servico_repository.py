@@ -1,8 +1,8 @@
 from typing import Sequence, cast
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
+
 from app.modules.item_servico.item_servico_model import ItemServico
-from app.modules.ordem_servico.ordem_servico_model import OrdemServico
 
 class ItemServicoRepository:
     def __init__(self, db: Session):
@@ -24,27 +24,31 @@ class ItemServicoRepository:
                 setattr(item, campo, valor)
         return item
 
-    def buscar_um(self, id: int | None = None,
-                  servico_id: int | None = None,
-                  cliente_id: int | None = None) -> ItemServico | None:
+    def buscar_um(self,
+                  id: int | None = None,
+                  descricao: str | None = None,
+                  categoria_id: int | None = None,
+                  ativo: bool | None = None) -> ItemServico | None:
         consulta = select(ItemServico)
+        if descricao:
+            consulta = consulta.where(ItemServico.descricao.ilike(descricao))
         if id:
             consulta = consulta.where(ItemServico.id == id)
-        if servico_id:
-            consulta = consulta.where(ItemServico.servico_id == servico_id)
-        if cliente_id:
-            consulta = consulta.where(OrdemServico.cliente_id == cliente_id)
+        if categoria_id:
+            consulta = consulta.where(ItemServico.categoria_id == categoria_id)
+        if ativo:
+            consulta = consulta.where(ItemServico.ativo == ativo)
         return self.db.execute(consulta).scalar_one_or_none()
 
     def buscar_varios(self,
-                      servico_id: int | None = None,
-                      cliente_id: int | None = None,
+                      id: int | None = None,
+                      categoria_id: int | None = None,
                       ativo: bool | None = None) -> Sequence[ItemServico]:
         consulta = select(ItemServico)
-        if servico_id:
-            consulta = consulta.where(ItemServico.servico_id == servico_id)
-        if cliente_id:
-            consulta = consulta.where(OrdemServico.cliente_id == cliente_id)
+        if id:
+            consulta = consulta.where(ItemServico.id == id)
+        if categoria_id:
+            consulta = consulta.where(ItemServico.categoria_id == categoria_id)
         if ativo is not None:
             consulta = consulta.where(ItemServico.ativo == ativo)
         return self.db.execute(consulta).scalars().all()
@@ -62,5 +66,14 @@ class ItemServicoRepository:
         else:
             return None
 
-    def exists_servico(self, servico_id: int) -> bool:
-        return self.db.execute(select(exists().where(ItemServico.servico_id == servico_id))).scalar()
+    def exists_item(self, categoria_id: int | None = None, descricao: str | None = None) -> bool:
+
+        consulta = self.db.execute
+        if categoria_id:
+            consulta = consulta(select(exists().where(ItemServico.categoria_id == categoria_id))).scalar()
+        if descricao:
+            consulta = consulta(select(exists().where(ItemServico.descricao.ilike(descricao)))).scalar()
+        else:
+            return False
+
+        return consulta
