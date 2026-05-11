@@ -13,6 +13,9 @@ from app.modules.ordem_servico.ordem_servico_service import OrdemServicoService
 from app.modules.servico.servico_repository import ServicoRepository
 from app.modules.servico.servico_service import ServicoService
 
+from app.modules.categoria.categoria_repository import CategoriaRepository
+from app.modules.categoria.categoria_service import CategoriaService
+
 
 #INVERSÃO DE DEPENDÊNCIAS PARA O SERVICE E ROUTES, APENAS O REPOSITORY CONHECE AS REGRAS DO BANCO
 
