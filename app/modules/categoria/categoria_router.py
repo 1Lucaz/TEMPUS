@@ -51,7 +51,7 @@ def buscar_uma_categoria(
 def criar_categoria(
     dados: CategoriaCreate,
     service: CategoriaService = Depends(get_categoria_service),
-    usuario: Union[FuncionarioResponse, ClienteResponse] = Depends(get_usuario_atual)
+    usuario: FuncionarioResponse = Depends(get_usuario_atual)
 ):
     return service.criar_categoria(dados, usuario)
 
