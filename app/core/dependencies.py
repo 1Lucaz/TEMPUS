@@ -56,3 +56,10 @@ def get_servico_repository (db: Session = Depends(get_db)) -> ServicoRepository:
 
 def get_servico_service (repository: ServicoRepository = Depends(get_servico_repository)) -> ServicoService:
     return ServicoService(repository)
+
+def get_categoria_repository (db: Session = Depends(get_db)) -> CategoriaRepository :
+    return CategoriaRepository (db)
+
+def get_categoria_servico (repository: CategoriaRepository = Depends(get_categoria_repository),
+                               categoria_repository: CategoriaRepository = Depends(get_cliente_repository)) ->  CategoriaService :
+    return CategoriaService ( repository, categoria_repository)
