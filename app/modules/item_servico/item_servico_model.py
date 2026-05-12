@@ -26,11 +26,6 @@ class ItemServico(Base):
         nullable=False,
     )
 
-    valor: Mapped[float] = mapped_column(
-        Float,
-        nullable=False
-    )
-
     ativo: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
