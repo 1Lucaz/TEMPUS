@@ -49,7 +49,7 @@ class ItemServicoService:
 
         return self.repository.registrar_item(ItemServico(
             categoria_id=dados.categoria_id,
-            valor=dados.valor,
+            ativo=dados.ativo,
             descricao=dados.descricao
         ))
 
